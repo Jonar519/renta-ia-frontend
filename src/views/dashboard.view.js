@@ -23,7 +23,7 @@ export async function renderDashboard(root) {
               <input type="text" name="fullName" required minlength="2" maxlength="200" />
             </label>
             <label>Cédula o NIT
-              <input type="text" name="documentNumber" required minlength="3" maxlength="30" pattern="[0-9A-Za-z.\-]+" title="Solo números, letras, puntos y guiones" />
+              <input type="text" name="documentNumber" required minlength="3" maxlength="30" pattern="[0-9A-Za-z.\\-]+" title="Solo números, letras, puntos y guiones" />
             </label>
             <label>Correo (opcional)
               <input type="email" name="email" maxlength="150" />

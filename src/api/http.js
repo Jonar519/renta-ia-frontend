@@ -38,7 +38,7 @@ async function request(path, { method = "GET", body, isFormData = false, timeout
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   let response;
-  let data = null;
+  let data;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       method,
@@ -51,7 +51,7 @@ async function request(path, { method = "GET", body, isFormData = false, timeout
   } catch (err) {
     // Nunca se muestra el error crudo del navegador ("Failed to fetch",
     // "NetworkError when attempting...", "The user aborted a request").
-    throw new Error(err && err.name === "AbortError" ? TIMEOUT_ERROR_MESSAGE : NETWORK_ERROR_MESSAGE);
+    throw new Error(err && err.name === "AbortError" ? TIMEOUT_ERROR_MESSAGE : NETWORK_ERROR_MESSAGE, { cause: err });
   } finally {
     clearTimeout(timer);
   }
