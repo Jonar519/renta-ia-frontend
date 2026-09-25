@@ -45,7 +45,9 @@ describe("http.js", () => {
 
   it("un 401 sin sesión (login incorrecto) muestra el mensaje del servidor", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { error: "Credenciales inválidas" })));
-    await expect(http.post("/api/auth/login", { email: "a@b.co", password: "x" })).rejects.toThrow("Credenciales inválidas");
+    await expect(http.post("/api/auth/login", { email: "a@b.co", password: "x" })).rejects.toThrow(
+      "Credenciales inválidas"
+    );
   });
 
   it("un error de red muestra un mensaje legible en español, no el error crudo del navegador", async () => {
@@ -61,9 +63,14 @@ describe("http.js", () => {
     // fetch que nunca responde, salvo que se aborte con el AbortSignal.
     vi.stubGlobal(
       "fetch",
-      vi.fn((_url, { signal }) => new Promise((_resolve, reject) => {
-        signal.addEventListener("abort", () => reject(new DOMException("The user aborted a request.", "AbortError")));
-      }))
+      vi.fn(
+        (_url, { signal }) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () =>
+              reject(new DOMException("The user aborted a request.", "AbortError"))
+            );
+          })
+      )
     );
 
     const pending = http.get("/api/clients").catch((e) => e);
@@ -75,9 +82,14 @@ describe("http.js", () => {
   it("agrega los detalles de validación del backend al mensaje", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(400, { error: "Datos inválidos", details: [{ field: "body.question", message: "Campo requerido" }] })
-      )
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(400, {
+            error: "Datos inválidos",
+            details: [{ field: "body.question", message: "Campo requerido" }],
+          })
+        )
     );
     await expect(http.post("/api/ai/chat", {})).rejects.toThrow("Datos inválidos — question: Campo requerido");
   });

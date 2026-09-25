@@ -6,7 +6,9 @@
   font-size: var(--fs-sm);
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.05s ease;
+  transition:
+    background-color 0.15s ease,
+    transform 0.05s ease;
 }
 .btn:active {
   transform: translateY(1px);
@@ -357,7 +359,9 @@
   box-shadow: var(--shadow-sm);
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
   max-width: 320px;
 }
 .toast--visible {

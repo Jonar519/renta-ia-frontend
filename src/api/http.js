@@ -76,5 +76,6 @@ export const http = {
   post: (path, body, options) => request(path, { ...options, method: "POST", body }),
   patch: (path, body, options) => request(path, { ...options, method: "PATCH", body }),
   delete: (path, options) => request(path, { ...options, method: "DELETE" }),
-  postForm: (path, formData, options) => request(path, { ...options, method: "POST", body: formData, isFormData: true }),
+  postForm: (path, formData, options) =>
+    request(path, { ...options, method: "POST", body: formData, isFormData: true }),
 };

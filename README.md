@@ -48,6 +48,7 @@ npm run dev
 Vite te dará una URL, normalmente `http://localhost:5173`. Ábrela en el navegador.
 
 **Importante:** para que la app funcione de verdad, necesitas tener corriendo **al mismo tiempo** (cada uno en su propia ventana de cmd):
+
 1. Docker: contenedores de Postgres y Redis
 2. `renta-ia-backend` → `npm run dev` (la API, puerto 4000)
 3. `renta-ia-backend` → `npm run worker` (el procesador de IA)
@@ -55,8 +56,8 @@ Vite te dará una URL, normalmente `http://localhost:5173`. Ábrela en el navega
 
 ## Variables de entorno (`.env`)
 
-| Variable | Descripción |
-|---|---|
+| Variable       | Descripción                                                  |
+| -------------- | ------------------------------------------------------------ |
 | `VITE_API_URL` | URL base del backend. En desarrollo: `http://localhost:4000` |
 
 ## Cómo está armada la app (sin framework)

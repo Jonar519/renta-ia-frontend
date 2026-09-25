@@ -23,8 +23,14 @@ function requireAuth(handler) {
 }
 
 registerRoute("/login", () => renderLogin(app));
-registerRoute("/", requireAuth(() => renderDashboard(app)));
-registerRoute("/clients/:id", requireAuth((params) => renderClientDetail(app, params.id)));
+registerRoute(
+  "/",
+  requireAuth(() => renderDashboard(app))
+);
+registerRoute(
+  "/clients/:id",
+  requireAuth((params) => renderClientDetail(app, params.id))
+);
 
 startRouter();
 registerServiceWorker();
