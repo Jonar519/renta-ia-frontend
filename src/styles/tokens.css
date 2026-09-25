@@ -1,0 +1,38 @@
+:root {
+  /* Color: paleta "Midnight Executive", consistente con el resto del proyecto */
+  --color-bg: #f4f6f8;
+  --color-surface: #ffffff;
+  --color-navy-900: #16233a;
+  --color-navy-700: #1f3b57;
+  --color-navy-500: #2e5c8a;
+  --color-amber-600: #b9770e;
+  --color-amber-100: #fcf3e7;
+  --color-green-700: #1e8449;
+  --color-green-100: #eafaf1;
+  --color-red-700: #943126;
+  --color-red-100: #f5d6d6;
+  --color-blue-700: #1d5a8c;
+  --color-blue-100: #e4eef7;
+  --color-ink-900: #1f2a38;
+  --color-ink-500: #5b6472;
+  --color-border: #e2e5ea;
+
+  /* Tipografía: serif para encabezados (autoridad, tono "documento oficial"),
+     sans para interfaz y datos (legibilidad en tablas densas) */
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
+  --fs-2xl: 2.25rem;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(22, 35, 58, 0.06);
+  --shadow-lg: 0 24px 48px rgba(10, 16, 28, 0.35);
+}
