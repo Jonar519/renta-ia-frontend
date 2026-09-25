@@ -127,8 +127,12 @@ export async function renderClientDetail(root, clientId) {
   }
 
   async function loadDocumentsAndConcepts() {
+    // Dos cargas independientes: si una falla, la otra tabla se sigue mostrando.
+    await Promise.all([loadDocuments(), loadConcepts()]);
+  }
+
+  async function loadDocuments() {
     const docsTbody = root.querySelector("#documents-table tbody");
-    const conceptsTbody = root.querySelector("#concepts-table tbody");
 
     try {
       const documents = await documentsApi.listByClient(clientId);
@@ -149,7 +153,15 @@ export async function renderClientDetail(root, clientId) {
           })
           .join("");
       }
+    } catch (err) {
+      docsTbody.innerHTML = `<tr><td colspan="4" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
 
+  async function loadConcepts() {
+    const conceptsTbody = root.querySelector("#concepts-table tbody");
+
+    try {
       // Los conceptos tributarios se consultan en una sola llamada dedicada
       // (GET /api/clients/:id/tax-concepts), en vez de pedir el detalle de
       // cada documento uno por uno.
@@ -171,7 +183,7 @@ export async function renderClientDetail(root, clientId) {
           .join("");
       }
     } catch (err) {
-      docsTbody.innerHTML = `<tr><td colspan="4" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
+      conceptsTbody.innerHTML = `<tr><td colspan="4" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
     }
   }
 
