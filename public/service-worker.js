@@ -1,4 +1,6 @@
-const CACHE_NAME = "renta-ia-cache-v1";
+// v2: la v1 guardaba respuestas de la API (datos tributarios) en la caché.
+// Al activarse esta versión se borra cualquier caché anterior, incluida esa.
+const CACHE_NAME = "renta-ia-cache-v2";
 const STATIC_ASSETS = ["/", "/index.html", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -21,21 +23,13 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Llamadas a la API: network-first, con fallback a cache si no hay conexión
-  // (permite seguir consultando datos ya vistos sin conexión estable).
-  if (url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
-  }
+  // API y cualquier otro origen (el backend corre en otro puerto/dominio):
+  // network-only. Sin respondWith, el navegador hace la petición normal y
+  // NADA se guarda en la caché. Las respuestas de la API contienen datos
+  // tributarios sensibles que no deben quedar en el dispositivo (p. ej. tras
+  // cerrar sesión en un equipo compartido).
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
 
-  // Assets estáticos de la app: cache-first.
+  // Assets estáticos propios de la app: cache-first.
   event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
