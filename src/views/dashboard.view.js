@@ -7,17 +7,17 @@ export async function renderDashboard(root) {
   root.innerHTML = `
     <div class="app-shell">
       ${renderSidebar("dashboard")}
-      <main class="main">
+      <main class="main" id="main-content" tabindex="-1">
         <header class="main__header">
           <div>
             <h1 class="page-title">Tus clientes</h1>
             <p class="page-subtitle">Administra la información tributaria de cada cliente contribuyente.</p>
           </div>
-          <button id="btn-new-client" class="btn btn--primary" type="button">Nuevo cliente</button>
+          <button id="btn-new-client" class="btn btn--primary" type="button" aria-expanded="false" aria-controls="new-client-panel">Nuevo cliente</button>
         </header>
 
-        <section class="panel" id="new-client-panel" hidden>
-          <h2>Nuevo cliente contribuyente</h2>
+        <section class="panel" id="new-client-panel" aria-labelledby="new-client-title" hidden>
+          <h2 id="new-client-title">Nuevo cliente contribuyente</h2>
           <form id="new-client-form" class="form-grid">
             <label>Nombre completo
               <input type="text" name="fullName" required minlength="2" maxlength="200" />
@@ -40,13 +40,14 @@ export async function renderDashboard(root) {
 
         <section class="panel">
           <table class="table">
+            <caption class="visually-hidden">Tus clientes contribuyentes</caption>
             <thead>
               <tr>
-                <th>Cliente</th>
-                <th>Documento</th>
-                <th>Correo</th>
-                <th>Creado</th>
-                <th></th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Documento</th>
+                <th scope="col">Correo</th>
+                <th scope="col">Creado</th>
+                <th scope="col"><span class="visually-hidden">Acciones</span></th>
               </tr>
             </thead>
             <tbody id="clients-tbody">
@@ -62,14 +63,26 @@ export async function renderDashboard(root) {
 
   const panel = root.querySelector("#new-client-panel");
   const form = root.querySelector("#new-client-form");
+  const newClientBtn = root.querySelector("#btn-new-client");
 
-  root.querySelector("#btn-new-client").addEventListener("click", () => {
+  function openPanel() {
     panel.hidden = false;
-  });
+    newClientBtn.setAttribute("aria-expanded", "true");
+    form.elements.fullName.focus();
+  }
 
-  root.querySelector("#btn-cancel-client").addEventListener("click", () => {
+  // Al cerrar, el foco vuelve al botón que abrió el panel.
+  function closePanel() {
     panel.hidden = true;
+    newClientBtn.setAttribute("aria-expanded", "false");
     form.reset();
+    newClientBtn.focus();
+  }
+
+  newClientBtn.addEventListener("click", openPanel);
+  root.querySelector("#btn-cancel-client").addEventListener("click", closePanel);
+  panel.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closePanel();
   });
 
   form.addEventListener("submit", async (event) => {
@@ -79,8 +92,7 @@ export async function renderDashboard(root) {
     try {
       await clientsApi.create(data);
       showToast("Cliente creado correctamente", "success");
-      panel.hidden = true;
-      form.reset();
+      closePanel();
       await loadClients();
     } catch (err) {
       showToast(err.message, "error");

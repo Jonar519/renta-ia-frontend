@@ -13,8 +13,10 @@
     />
   </head>
   <body>
+    <!-- El router usa el hash de la URL, así que el salto se hace por JS (main.js). -->
+    <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
     <div id="app"></div>
-    <div id="toast-root"></div>
+    <div id="toast-root" role="status" aria-live="polite"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

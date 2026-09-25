@@ -4,6 +4,9 @@ export function showToast(message, type = "info") {
 
   const toast = document.createElement("div");
   toast.className = `toast toast--${type}`;
+  // #toast-root es una región aria-live="polite"; los errores se anuncian
+  // de inmediato (role="alert" = assertive).
+  if (type === "error") toast.setAttribute("role", "alert");
   toast.textContent = message;
   root.appendChild(toast);
 

@@ -7,8 +7,13 @@
   --color-navy-500: #2e5c8a;
   --color-amber-600: #b9770e;
   --color-amber-100: #fcf3e7;
+  /* Texto sobre fondos claros: cumplen WCAG AA (≥ 4.5:1). amber-800 sobre
+     amber-100 = 5.21:1; green-800 sobre green-100 = 5.45:1. Los tonos 600/700
+     (3.35:1 y 4.37:1) se mantienen para fondos y acentos, no para texto pequeño. */
+  --color-amber-800: #8f5b08;
   --color-green-700: #1e8449;
   --color-green-100: #eafaf1;
+  --color-green-800: #197340;
   --color-red-700: #943126;
   --color-red-100: #f5d6d6;
   --color-blue-700: #1d5a8c;

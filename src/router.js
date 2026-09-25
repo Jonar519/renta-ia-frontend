@@ -8,7 +8,19 @@ export function navigate(path) {
   window.location.hash = path;
 }
 
-function resolve() {
+/**
+ * Tras cambiar de vista, mueve el foco al <h1> de la vista nueva. Así un
+ * lector de pantalla anuncia la página nueva y el teclado no queda "perdido"
+ * en un elemento que ya no existe.
+ */
+function focusMainHeading() {
+  const heading = document.querySelector("#app h1");
+  if (!heading) return;
+  heading.setAttribute("tabindex", "-1");
+  heading.focus();
+}
+
+function resolve({ initial = false } = {}) {
   const hash = window.location.hash.slice(1) || "/login";
   const hashParts = hash.split("/").filter(Boolean);
 
@@ -29,7 +41,11 @@ function resolve() {
     }
 
     if (matched) {
+      // Las vistas pintan su HTML (con el <h1>) de forma síncrona antes de
+      // su primer await, así que el <h1> ya existe al volver del handler.
       route.handler(params);
+      // En la carga inicial de la página no se roba el foco.
+      if (!initial) focusMainHeading();
       return;
     }
   }
@@ -39,6 +55,6 @@ function resolve() {
 }
 
 export function startRouter() {
-  window.addEventListener("hashchange", resolve);
-  resolve();
+  window.addEventListener("hashchange", () => resolve());
+  resolve({ initial: true });
 }

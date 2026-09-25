@@ -1,19 +1,21 @@
 import { authApi } from "../api/auth.api.js";
 import { setAuth } from "../state/store.js";
 import { showToast } from "../components/toast.js";
+import { bindTabs } from "../components/tabs.js";
 
 export function renderLogin(root) {
   root.innerHTML = `
-    <div class="auth-screen">
+    <main class="auth-screen" id="main-content" tabindex="-1">
       <div class="auth-card">
         <h1 class="auth-title">Renta IA</h1>
         <p class="auth-subtitle">Gestión documental contable para tus clientes, con IA que lee, extrae y avisa por ti.</p>
 
-        <div class="auth-tabs">
-          <button class="auth-tab is-active" data-tab="login" type="button">Iniciar sesión</button>
-          <button class="auth-tab" data-tab="register" type="button">Crear cuenta</button>
+        <div class="auth-tabs" role="tablist" aria-label="Acceso">
+          <button class="auth-tab" role="tab" id="tab-login" aria-controls="panel-login" aria-selected="true" type="button">Iniciar sesión</button>
+          <button class="auth-tab" role="tab" id="tab-register" aria-controls="panel-register" aria-selected="false" type="button">Crear cuenta</button>
         </div>
 
+        <div role="tabpanel" id="panel-login" aria-labelledby="tab-login">
         <form id="login-form" class="auth-form">
           <label>Correo
             <input type="email" name="email" required autocomplete="email" />
@@ -23,8 +25,10 @@ export function renderLogin(root) {
           </label>
           <button type="submit" class="btn btn--primary btn--block">Entrar</button>
         </form>
+        </div>
 
-        <form id="register-form" class="auth-form" hidden>
+        <div role="tabpanel" id="panel-register" aria-labelledby="tab-register" hidden>
+        <form id="register-form" class="auth-form">
           <label>Nombre
             <input type="text" name="name" required minlength="2" maxlength="150" autocomplete="name" />
           </label>
@@ -36,23 +40,15 @@ export function renderLogin(root) {
           </label>
           <button type="submit" class="btn btn--primary btn--block">Crear cuenta</button>
         </form>
+        </div>
       </div>
-    </div>
+    </main>
   `;
 
-  const tabs = root.querySelectorAll(".auth-tab");
   const loginForm = root.querySelector("#login-form");
   const registerForm = root.querySelector("#register-form");
 
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("is-active"));
-      tab.classList.add("is-active");
-      const isLogin = tab.dataset.tab === "login";
-      loginForm.hidden = !isLogin;
-      registerForm.hidden = isLogin;
-    });
-  });
+  bindTabs(root);
 
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();

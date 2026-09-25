@@ -4,6 +4,7 @@ import { alertsApi } from "../api/alerts.api.js";
 import { aiApi } from "../api/ai.api.js";
 import { showToast } from "../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
+import { bindTabs } from "../components/tabs.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 
 const DOC_TYPE_LABELS = {
@@ -13,13 +14,6 @@ const DOC_TYPE_LABELS = {
   exogenous_info: "Información exógena",
   pension_certificate: "Certificado de pensión/salud",
   other: "Otro",
-};
-
-const STATUS_LABELS = {
-  uploaded: { text: "Subido", tone: "neutral" },
-  processing: { text: "Procesando", tone: "info" },
-  processed: { text: "Procesado", tone: "success" },
-  error: { text: "Con advertencias", tone: "warning" },
 };
 
 const CONCEPT_LABELS = {
@@ -34,23 +28,55 @@ const CONCEPT_LABELS = {
 const SEVERITY_LABELS = { low: "Baja", medium: "Media", high: "Alta", critical: "Crítica" };
 const SEVERITY_TONES = { low: "neutral", medium: "info", high: "warning", critical: "error" };
 
+/**
+ * Estado visible de un documento. "error" y "processed con advertencias"
+ * son cosas distintas en el backend:
+ *  - error: falló la extracción de texto; no se pudo analizar nada.
+ *  - processed + errorMessage: se leyó el texto, pero alguna etapa de IA
+ *    (conceptos o embeddings) falló; el resto sí quedó guardado.
+ */
+export function documentStatus(doc) {
+  switch (doc.status) {
+    case "uploaded":
+      return { text: "Subido", tone: "neutral" };
+    case "processing":
+      return { text: "Procesando", tone: "info" };
+    case "processed":
+      return doc.errorMessage
+        ? {
+            text: "Procesado con advertencias",
+            tone: "warning",
+            // El backend antepone "Procesado con advertencias: "; el badge ya lo dice.
+            detail: doc.errorMessage.replace(/^Procesado con advertencias:\s*/, ""),
+          }
+        : { text: "Procesado", tone: "success" };
+    case "error":
+      return { text: "Error al procesar", tone: "error", detail: doc.errorMessage };
+    default:
+      return { text: doc.status, tone: "neutral" };
+  }
+}
+
 export async function renderClientDetail(root, clientId) {
   root.innerHTML = `
     <div class="app-shell">
       ${renderSidebar("dashboard")}
-      <main class="main">
+      <main class="main" id="main-content" tabindex="-1">
         <a href="#/" class="link link--back">Volver a clientes</a>
-        <header class="main__header" id="client-header">
-          <div><h1 class="page-title">Cargando cliente...</h1></div>
+        <header class="main__header">
+          <div>
+            <h1 class="page-title" id="client-name">Cargando cliente...</h1>
+            <p class="page-subtitle" id="client-meta"></p>
+          </div>
         </header>
 
-        <div class="tabs">
-          <button class="tab is-active" data-tab="documents" type="button">Documentos</button>
-          <button class="tab" data-tab="alerts" type="button">Alertas</button>
-          <button class="tab" data-tab="chat" type="button">Asistente IA</button>
+        <div class="tabs" role="tablist" aria-label="Secciones del cliente">
+          <button class="tab" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="true" type="button">Documentos</button>
+          <button class="tab" role="tab" id="tab-alerts" aria-controls="panel-alerts" aria-selected="false" type="button">Alertas</button>
+          <button class="tab" role="tab" id="tab-chat" aria-controls="panel-chat" aria-selected="false" type="button">Asistente IA</button>
         </div>
 
-        <section class="tab-panel" data-panel="documents">
+        <div class="tab-panel" role="tabpanel" id="panel-documents" aria-labelledby="tab-documents" tabindex="0">
           <section class="panel">
             <h2>Subir documento</h2>
             <form id="upload-form" class="upload-form">
@@ -66,47 +92,50 @@ export async function renderClientDetail(root, clientId) {
               </label>
               <button type="submit" class="btn btn--primary" id="upload-btn">Subir y analizar con IA</button>
             </form>
-            <p id="upload-status" class="form-hint"></p>
+            <p id="upload-status" class="form-hint" role="status" aria-live="polite"></p>
           </section>
 
           <section class="panel">
             <h2>Conceptos tributarios extraídos</h2>
             <table class="table" id="concepts-table">
-              <thead><tr><th>Concepto</th><th>Descripción</th><th>Monto</th><th>Año</th></tr></thead>
-              <tbody><tr><td colspan="4" class="table__empty">Aún no hay conceptos extraídos.</td></tr></tbody>
+              <caption class="visually-hidden">Conceptos tributarios extraídos por la IA de los documentos del cliente</caption>
+              <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col">Monto</th><th scope="col">Año</th></tr></thead>
+              <tbody><tr><td colspan="4" class="table__empty">Cargando...</td></tr></tbody>
             </table>
           </section>
 
           <section class="panel">
             <h2>Documentos</h2>
             <table class="table" id="documents-table">
-              <thead><tr><th>Archivo</th><th>Tipo</th><th>Estado</th><th>Subido</th></tr></thead>
+              <caption class="visually-hidden">Documentos subidos y su estado de procesamiento</caption>
+              <thead><tr><th scope="col">Archivo</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Subido</th></tr></thead>
               <tbody><tr><td colspan="4" class="table__empty">Cargando...</td></tr></tbody>
             </table>
           </section>
-        </section>
+        </div>
 
-        <section class="tab-panel" data-panel="alerts" hidden>
+        <div class="tab-panel" role="tabpanel" id="panel-alerts" aria-labelledby="tab-alerts" tabindex="0" hidden>
           <section class="panel">
             <h2>Alertas</h2>
             <ul class="alert-list" id="alerts-list">
               <li class="table__empty">Cargando...</li>
             </ul>
           </section>
-        </section>
+        </div>
 
-        <section class="tab-panel" data-panel="chat" hidden>
+        <div class="tab-panel" role="tabpanel" id="panel-chat" aria-labelledby="tab-chat" tabindex="0" hidden>
           <section class="panel panel--chat">
             <h2>Pregúntale a la IA sobre este cliente</h2>
-            <div class="chat-log" id="chat-log">
+            <div class="chat-log" id="chat-log" role="log" aria-live="polite" aria-label="Conversación con el asistente de IA">
               <p class="chat-empty">Hazle una pregunta sobre los documentos de este cliente. Por ejemplo: "¿Cuál fue el ingreso bruto reportado?"</p>
             </div>
             <form id="chat-form" class="chat-form">
-              <input type="text" name="question" placeholder="Escribe tu pregunta..." required minlength="3" maxlength="1000" />
+              <label for="chat-question" class="visually-hidden">Tu pregunta sobre este cliente</label>
+              <input type="text" id="chat-question" name="question" placeholder="Escribe tu pregunta..." required minlength="3" maxlength="1000" />
               <button type="submit" class="btn btn--primary">Preguntar</button>
             </form>
           </section>
-        </section>
+        </div>
       </main>
     </div>
   `;
@@ -114,16 +143,19 @@ export async function renderClientDetail(root, clientId) {
   bindSidebarEvents(root);
   bindTabs(root);
 
-  try {
-    const client = await clientsApi.getById(clientId);
-    root.querySelector("#client-header").innerHTML = `
-      <div>
-        <h1 class="page-title">${escapeHtml(client.fullName)}</h1>
-        <p class="page-subtitle">${escapeHtml(client.documentNumber)}${client.email ? " · " + escapeHtml(client.email) : ""}</p>
-      </div>
-    `;
-  } catch (err) {
-    showToast(err.message, "error");
+  async function loadClient() {
+    try {
+      const client = await clientsApi.getById(clientId);
+      // Se actualiza el texto del <h1> existente (no se reemplaza el nodo)
+      // para no perder el foco que el router le dio al cambiar de ruta.
+      root.querySelector("#client-name").textContent = client.fullName;
+      root.querySelector("#client-meta").textContent = client.email
+        ? `${client.documentNumber} · ${client.email}`
+        : client.documentNumber;
+    } catch (err) {
+      root.querySelector("#client-name").textContent = "Cliente no disponible";
+      showToast(err.message, "error");
+    }
   }
 
   async function loadDocumentsAndConcepts() {
@@ -142,12 +174,15 @@ export async function renderClientDetail(root, clientId) {
       } else {
         docsTbody.innerHTML = documents
           .map((d) => {
-            const status = STATUS_LABELS[d.status] || { text: d.status, tone: "neutral" };
+            const status = documentStatus(d);
             return `
             <tr>
               <td class="table__primary">${escapeHtml(d.originalName)}</td>
-              <td>${DOC_TYPE_LABELS[d.docType] || d.docType}</td>
-              <td><span class="badge badge--${status.tone}">${status.text}</span></td>
+              <td>${DOC_TYPE_LABELS[d.docType] || escapeHtml(d.docType)}</td>
+              <td>
+                <span class="badge badge--${status.tone}">${escapeHtml(status.text)}</span>
+                ${status.detail ? `<p class="table__note">${escapeHtml(status.detail)}</p>` : ""}
+              </td>
               <td>${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
             </tr>`;
           })
@@ -174,10 +209,10 @@ export async function renderClientDetail(root, clientId) {
           .map(
             (c) => `
           <tr>
-            <td class="table__primary">${CONCEPT_LABELS[c.conceptType] || c.conceptType}</td>
+            <td class="table__primary">${CONCEPT_LABELS[c.conceptType] || escapeHtml(c.conceptType)}</td>
             <td>${escapeHtml(c.description || "—")}</td>
             <td>$${Number(c.amount).toLocaleString("es-CO")}</td>
-            <td>${c.periodYear}</td>
+            <td>${escapeHtml(String(c.periodYear))}</td>
           </tr>`
           )
           .join("");
@@ -201,7 +236,7 @@ export async function renderClientDetail(root, clientId) {
         .map(
           (a) => `
         <li class="alert-item">
-          <span class="badge badge--${SEVERITY_TONES[a.severity] || "neutral"}">${SEVERITY_LABELS[a.severity] || a.severity}</span>
+          <span class="badge badge--${SEVERITY_TONES[a.severity] || "neutral"}">${SEVERITY_LABELS[a.severity] || escapeHtml(a.severity)}</span>
           <div>
             <p>${escapeHtml(a.message)}</p>
             <p class="alert-item__meta">${new Date(a.createdAt).toLocaleString("es-CO")}${
@@ -216,8 +251,9 @@ export async function renderClientDetail(root, clientId) {
     }
   }
 
-  await loadDocumentsAndConcepts();
-  await loadAlerts();
+  // Todas las cargas iniciales en paralelo; los formularios se conectan de
+  // inmediato, sin esperar a que terminen.
+  const initialLoad = Promise.all([loadClient(), loadDocumentsAndConcepts(), loadAlerts()]);
 
   // --- Subida de documentos, validada primero en un Web Worker ---
   const uploadForm = root.querySelector("#upload-form");
@@ -258,12 +294,13 @@ export async function renderClientDetail(root, clientId) {
       try {
         await documentsApi.upload(formData);
         showToast("Documento subido. El análisis con IA corre en segundo plano.", "success");
-        uploadStatus.textContent = "";
+        uploadStatus.textContent = "Documento subido. El análisis con IA corre en segundo plano.";
         uploadForm.reset();
         await loadDocumentsAndConcepts();
       } catch (err) {
         showToast(err.message, "error");
-        uploadStatus.textContent = "";
+        uploadStatus.classList.add("form-hint--error");
+        uploadStatus.textContent = err.message;
       } finally {
         uploadBtn.disabled = false;
       }
@@ -301,6 +338,8 @@ export async function renderClientDetail(root, clientId) {
       input.focus();
     }
   });
+
+  await initialLoad;
 }
 
 function appendChatMessage(logEl, role, text, pending = false) {
@@ -316,19 +355,4 @@ function appendChatMessage(logEl, role, text, pending = false) {
   logEl.appendChild(wrapper);
   logEl.scrollTop = logEl.scrollHeight;
   return wrapper;
-}
-
-function bindTabs(root) {
-  const tabs = root.querySelectorAll(".tab");
-  const panels = root.querySelectorAll(".tab-panel");
-
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("is-active"));
-      tab.classList.add("is-active");
-      panels.forEach((panel) => {
-        panel.hidden = panel.dataset.panel !== tab.dataset.tab;
-      });
-    });
-  });
 }

@@ -32,5 +32,12 @@ registerRoute(
   requireAuth((params) => renderClientDetail(app, params.id))
 );
 
+// Skip-link: con un router basado en hash, un href="#main-content" normal
+// cambiaría de ruta. Se intercepta y se mueve el foco al contenido principal.
+document.querySelector(".skip-link")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  document.getElementById("main-content")?.focus();
+});
+
 startRouter();
 registerServiceWorker();
