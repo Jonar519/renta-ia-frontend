@@ -11,7 +11,7 @@ renta-ia-frontend/
 ├── index.html
 ├── public/
 │   ├── favicon.svg
-│   └── service-worker.js       # Cache de assets + fallback offline para GETs de la API
+│   └── service-worker.js       # Cache de assets estáticos (la API nunca se cachea)
 ├── src/
 │   ├── main.js                  # Punto de entrada: router + vistas
 │   ├── router.js                 # Router propio, basado en hash (#/...)
@@ -71,7 +71,15 @@ Vite te dará una URL, normalmente `http://localhost:5173`. Ábrela en el navega
   > **Nota de seguridad:** guardar el JWT en `localStorage` es una simplificación válida para este proyecto de curso, pero tiene un riesgo conocido (accesible por JavaScript malicioso en caso de un ataque XSS). En un entorno de producción más estricto, se preferiría una cookie `httpOnly`. Queda documentado como una mejora posible.
 
 - **Web Worker** (`workers/fileValidation.worker.js`): antes de subir un archivo, se valida su tipo y tamaño en un hilo separado, para que la interfaz nunca se bloquee, ni siquiera con archivos grandes.
-- **Service Worker** (`public/service-worker.js`): cachea los assets estáticos (cache-first) y guarda en caché las respuestas `GET` de la API (network-first con fallback a caché), permitiendo seguir viendo información ya consultada aunque la conexión falle momentáneamente. Nunca intercepta `POST`/`PATCH`/`DELETE`.
+- **Service Worker** (`public/service-worker.js`): cachea solo los assets estáticos de la app (cache-first). Las llamadas a la API son **network-only**: sus respuestas contienen datos tributarios y no deben quedar guardadas en el dispositivo (por ejemplo, en un equipo compartido después de cerrar sesión). Nunca intercepta `POST`/`PATCH`/`DELETE`.
+
+## Accesibilidad
+
+- Pestañas con el patrón WAI-ARIA (`src/components/tabs.js`): `role="tablist"/"tab"/"tabpanel"`, `aria-selected`, navegación con flechas, Inicio y Fin.
+- Regiones `aria-live` en las notificaciones (errores con `role="alert"`), el chat (`role="log"`) y el estado de la subida.
+- Al cambiar de vista, el foco pasa al `<h1>` de la vista nueva; enlace "Saltar al contenido principal" al inicio.
+- Tablas con `<caption>` y `scope="col"`; todos los campos tienen `<label>`.
+- Contraste de texto WCAG AA (≥ 4.5:1), incluidos los badges de estado (ver `tokens.css`).
 
 ## Sistema de diseño
 
