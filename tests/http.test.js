@@ -82,14 +82,12 @@ describe("http.js", () => {
   it("agrega los detalles de validación del backend al mensaje", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          jsonResponse(400, {
-            error: "Datos inválidos",
-            details: [{ field: "body.question", message: "Campo requerido" }],
-          })
-        )
+      vi.fn().mockResolvedValue(
+        jsonResponse(400, {
+          error: "Datos inválidos",
+          details: [{ field: "body.question", message: "Campo requerido" }],
+        })
+      )
     );
     await expect(http.post("/api/ai/chat", {})).rejects.toThrow("Datos inválidos — question: Campo requerido");
   });
