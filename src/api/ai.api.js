@@ -1,5 +1,6 @@
-import { http } from "./http.js";
+import { http, LONG_TIMEOUT_MS } from "./http.js";
 
 export const aiApi = {
-  chat: (clientId, question) => http.post("/api/ai/chat", { clientId, question }),
+  // La respuesta del LLM puede tardar bastante más que una petición normal.
+  chat: (clientId, question) => http.post("/api/ai/chat", { clientId, question }, { timeoutMs: LONG_TIMEOUT_MS }),
 };
