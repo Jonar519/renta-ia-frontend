@@ -23,11 +23,13 @@ renta-ia-frontend/
 │   │   └── fileValidation.worker.js   # Valida el archivo ANTES de subirlo, sin bloquear la UI
 │   ├── sw/registerSW.js          # Registro del Service Worker
 │   └── styles/                   # tokens.css, base.css, layout.css, components.css
+├── tests/                        # Vitest + jsdom (ej. http.test.js)
+├── eslint.config.js · .prettierrc
 ```
 
 ## Requisitos
 
-- Node.js 18 o superior
+- Node.js 20 o superior
 - El repositorio `renta-ia-backend` corriendo (API en `npm run dev`, worker en `npm run worker`)
 
 ## Puesta en marcha (Windows · cmd.exe)
@@ -83,6 +85,29 @@ Paleta "Midnight Executive" (consistente con el resto del proyecto — arquitect
 4. El documento se sube y se encola; su estado pasa de `Subido` → `Procesando` → `Procesado`.
 5. Cuando termina, la pestaña "Documentos" muestra los conceptos tributarios extraídos, y la pestaña "Alertas" muestra cualquier inconsistencia detectada.
 6. En la pestaña "Asistente IA", se le pueden hacer preguntas en lenguaje natural sobre los documentos de ese cliente.
+
+## Tests y calidad de código
+
+```bat
+:: Tests (Vitest + jsdom)
+npm test
+
+:: Lint (ESLint + Prettier) y build de producción
+npm run lint
+npm run build
+
+:: Formatear el código
+npm run format
+```
+
+## Manejo de errores de red
+
+`src/api/http.js` centraliza todas las llamadas al backend:
+
+- **Timeout** con `AbortController`: 15 s por defecto, 60 s para el chat con IA y la subida de archivos.
+- Los errores de red y de timeout se muestran con un mensaje en español, nunca el error crudo del navegador.
+- Un `401` con sesión activa cierra la sesión y vuelve al login; un `401` sin sesión (login incorrecto) muestra el mensaje del servidor.
+- En errores de validación (`400`), el mensaje incluye qué campo corregir (`details` del backend).
 
 ## Qué falta (próxima fase)
 
