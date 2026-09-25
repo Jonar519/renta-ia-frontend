@@ -2,6 +2,18 @@ import { getState, clearAuth } from "../state/store.js";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
+// El backend responde { error, details? }. En errores de validación (400),
+// details es [{ field, message }]: se agregan al mensaje para que el
+// usuario sepa qué campo corregir.
+function buildErrorMessage(data, status) {
+  const base = (data && data.error) || `Error inesperado (${status})`;
+  if (data && Array.isArray(data.details) && data.details.length > 0) {
+    const fields = data.details.map((d) => `${String(d.field).split(".").pop()}: ${d.message}`).join("; ");
+    return `${base} — ${fields}`;
+  }
+  return base;
+}
+
 async function request(path, { method = "GET", body, isFormData = false } = {}) {
   const { token } = getState();
   const headers = {};
@@ -24,7 +36,7 @@ async function request(path, { method = "GET", body, isFormData = false } = {}) 
   const data = contentType.includes("application/json") ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error((data && data.error) || `Error inesperado (${response.status})`);
+    throw new Error(buildErrorMessage(data, response.status));
   }
 
   return data;

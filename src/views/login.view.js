@@ -26,13 +26,13 @@ export function renderLogin(root) {
 
         <form id="register-form" class="auth-form" hidden>
           <label>Nombre
-            <input type="text" name="name" required autocomplete="name" />
+            <input type="text" name="name" required minlength="2" maxlength="150" autocomplete="name" />
           </label>
           <label>Correo
             <input type="email" name="email" required autocomplete="email" />
           </label>
           <label>Contraseña
-            <input type="password" name="password" required minlength="8" autocomplete="new-password" />
+            <input type="password" name="password" required minlength="8" maxlength="72" autocomplete="new-password" />
           </label>
           <button type="submit" class="btn btn--primary btn--block">Crear cuenta</button>
         </form>

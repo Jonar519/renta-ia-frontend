@@ -20,16 +20,16 @@ export async function renderDashboard(root) {
           <h2>Nuevo cliente contribuyente</h2>
           <form id="new-client-form" class="form-grid">
             <label>Nombre completo
-              <input type="text" name="fullName" required />
+              <input type="text" name="fullName" required minlength="2" maxlength="200" />
             </label>
             <label>Cédula o NIT
-              <input type="text" name="documentNumber" required />
+              <input type="text" name="documentNumber" required minlength="3" maxlength="30" pattern="[0-9A-Za-z.\-]+" title="Solo números, letras, puntos y guiones" />
             </label>
             <label>Correo (opcional)
-              <input type="email" name="email" />
+              <input type="email" name="email" maxlength="150" />
             </label>
             <label>Teléfono (opcional)
-              <input type="text" name="phone" />
+              <input type="tel" name="phone" maxlength="30" />
             </label>
             <div class="form-actions">
               <button type="button" id="btn-cancel-client" class="btn btn--ghost">Cancelar</button>

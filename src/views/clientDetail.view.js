@@ -102,7 +102,7 @@ export async function renderClientDetail(root, clientId) {
               <p class="chat-empty">Hazle una pregunta sobre los documentos de este cliente. Por ejemplo: "¿Cuál fue el ingreso bruto reportado?"</p>
             </div>
             <form id="chat-form" class="chat-form">
-              <input type="text" name="question" placeholder="Escribe tu pregunta..." required />
+              <input type="text" name="question" placeholder="Escribe tu pregunta..." required minlength="3" maxlength="1000" />
               <button type="submit" class="btn btn--primary">Preguntar</button>
             </form>
           </section>
