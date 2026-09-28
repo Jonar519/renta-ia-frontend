@@ -27,7 +27,13 @@ export function validateFile(name, size) {
 }
 
 export async function sha256Hex(blob) {
-  const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
+  // Se pasa una vista Uint8Array (sin copia) en vez del ArrayBuffer directo:
+  // si el ArrayBuffer viene de otro "realm" (p. ej. el Blob de jsdom en los
+  // tests, con el crypto.subtle nativo de Node), Node 20 lo rechaza porque
+  // valida con instanceof; las vistas se validan por su tipo interno y
+  // funcionan en cualquier realm y en cualquier navegador.
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 

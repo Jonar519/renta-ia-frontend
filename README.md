@@ -40,6 +40,8 @@ renta-ia-frontend/
 ## Puesta en marcha (Windows · cmd.exe)
 
 Requisitos: Node.js 20+ y el backend corriendo (API + worker; ver el README raíz).
+El CI usa exactamente **Node 24.13.1** (la versión de desarrollo; `node-version` en
+`.github/workflows/ci.yml`). Los tests también pasan en Node 20.
 
 ```bat
 npm install
