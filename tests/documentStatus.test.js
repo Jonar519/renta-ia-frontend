@@ -1,8 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-
-// La vista importa módulos con efectos (Worker, APIs); solo se prueba la función pura.
-vi.mock("../src/api/http.js", () => ({ http: {}, LONG_TIMEOUT_MS: 60000 }));
-const { documentStatus } = await import("../src/views/clientDetail.view.js");
+import { describe, expect, it } from "vitest";
+import { canReprocess, documentStatus, isPending } from "../src/views/clientDetail/labels.js";
 
 describe("documentStatus", () => {
   it("processed sin errorMessage => Procesado (success)", () => {
@@ -20,8 +17,27 @@ describe("documentStatus", () => {
     expect(s).toMatchObject({ text: "Error al procesar", tone: "error", detail: "El PDF no tiene texto extraíble" });
   });
 
-  it("uploaded y processing", () => {
-    expect(documentStatus({ status: "uploaded" }).text).toBe("Subido");
+  it("uploaded (en la cola) y processing", () => {
+    expect(documentStatus({ status: "uploaded" }).text).toBe("En cola");
     expect(documentStatus({ status: "processing" }).text).toBe("Procesando");
+  });
+});
+
+describe("canReprocess / isPending", () => {
+  it("solo se puede reintentar un documento con error o con advertencias", () => {
+    expect(canReprocess({ status: "error", errorMessage: "x" })).toBe(true);
+    expect(canReprocess({ status: "processed", errorMessage: "Procesado con advertencias: x" })).toBe(true);
+    expect(canReprocess({ status: "processed", errorMessage: null })).toBe(false);
+    expect(canReprocess({ status: "uploaded", errorMessage: null })).toBe(false);
+    expect(canReprocess({ status: "processing", errorMessage: null })).toBe(false);
+  });
+
+  it("pendiente = en cola o procesando", () => {
+    expect(["uploaded", "processing", "processed", "error"].map((status) => isPending({ status }))).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
   });
 });

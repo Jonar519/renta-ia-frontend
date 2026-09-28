@@ -2,8 +2,12 @@ import { clientsApi } from "../api/clients.api.js";
 import { showToast } from "../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
+import { getState } from "../state/store.js";
 
 export async function renderDashboard(root) {
+  // El admin ve los clientes de todos los contadores: se agrega la columna "Contador".
+  const isAdmin = getState().user?.role === "admin";
+  const columns = isAdmin ? 6 : 5;
   root.innerHTML = `
     <div class="app-shell">
       ${renderSidebar("dashboard")}
@@ -46,12 +50,13 @@ export async function renderDashboard(root) {
                 <th scope="col">Cliente</th>
                 <th scope="col">Documento</th>
                 <th scope="col">Correo</th>
+                ${isAdmin ? '<th scope="col">Contador</th>' : ""}
                 <th scope="col">Creado</th>
                 <th scope="col"><span class="visually-hidden">Acciones</span></th>
               </tr>
             </thead>
             <tbody id="clients-tbody">
-              <tr><td colspan="5" class="table__empty">Cargando...</td></tr>
+              <tr><td colspan="${columns}" class="table__empty">Cargando...</td></tr>
             </tbody>
           </table>
         </section>
@@ -105,7 +110,7 @@ export async function renderDashboard(root) {
       const clients = await clientsApi.list();
 
       if (clients.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="table__empty">Todavía no tienes clientes. Crea el primero con "Nuevo cliente".</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${columns}" class="table__empty">Todavía no tienes clientes. Crea el primero con "Nuevo cliente".</td></tr>`;
         return;
       }
 
@@ -116,13 +121,14 @@ export async function renderDashboard(root) {
           <td class="table__primary">${escapeHtml(c.fullName)}</td>
           <td>${escapeHtml(c.documentNumber)}</td>
           <td>${escapeHtml(c.email || "—")}</td>
+          ${isAdmin ? `<td>${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
           <td>${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
           <td><a class="link" href="#/clients/${c.id}">Ver detalle</a></td>
         </tr>`
         )
         .join("");
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${columns}" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
     }
   }
 

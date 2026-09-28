@@ -5,4 +5,5 @@ export const documentsApi = {
   getById: (id) => http.get(`/api/documents/${id}`),
   // Archivos de hasta 15 MB: en conexiones lentas la subida tarda.
   upload: (formData) => http.postForm("/api/documents/upload", formData, { timeoutMs: LONG_TIMEOUT_MS }),
+  reprocess: (id) => http.post(`/api/documents/${id}/reprocess`),
 };

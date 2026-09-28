@@ -20,7 +20,29 @@ function focusMainHeading() {
   heading.focus();
 }
 
+// Funciones de limpieza de la vista actual (suscripciones al WebSocket,
+// timers de polling, peticiones en curso...). Se ejecutan al cambiar de ruta.
+let cleanups = [];
+
+/** Registra una limpieza para cuando el usuario salga de la vista actual. */
+export function registerCleanup(fn) {
+  cleanups.push(fn);
+}
+
+function runCleanups() {
+  const pending = cleanups;
+  cleanups = [];
+  for (const fn of pending) {
+    try {
+      fn();
+    } catch (err) {
+      console.error("Error al limpiar la vista anterior:", err);
+    }
+  }
+}
+
 function resolve({ initial = false } = {}) {
+  runCleanups();
   const hash = window.location.hash.slice(1) || "/login";
   const hashParts = hash.split("/").filter(Boolean);
 
