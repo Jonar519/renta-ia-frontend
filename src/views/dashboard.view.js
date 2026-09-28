@@ -3,6 +3,7 @@ import { showToast } from "../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { getState } from "../state/store.js";
+import { createPagedList } from "../components/pagedList.js";
 
 export async function renderDashboard(root) {
   // El admin ve los clientes de todos los contadores: se agrega la columna "Contador".
@@ -59,6 +60,10 @@ export async function renderDashboard(root) {
               <tr><td colspan="${columns}" class="table__empty">Cargando...</td></tr>
             </tbody>
           </table>
+          <div class="load-more">
+            <button type="button" class="btn btn--ghost" id="clients-more" aria-controls="clients-tbody" hidden>Cargar más clientes</button>
+            <p class="visually-hidden" id="clients-status" role="status" aria-live="polite"></p>
+          </div>
         </section>
       </main>
     </div>
@@ -98,39 +103,34 @@ export async function renderDashboard(root) {
       await clientsApi.create(data);
       showToast("Cliente creado correctamente", "success");
       closePanel();
-      await loadClients();
+      await clients.reload();
     } catch (err) {
       showToast(err.message, "error");
     }
   });
 
-  async function loadClients() {
-    const tbody = root.querySelector("#clients-tbody");
-    try {
-      const clients = await clientsApi.list();
+  const clientRowHtml = (c) => `
+    <tr>
+      <td class="table__primary">${escapeHtml(c.fullName)}</td>
+      <td>${escapeHtml(c.documentNumber)}</td>
+      <td>${escapeHtml(c.email || "—")}</td>
+      ${isAdmin ? `<td>${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
+      <td>${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
+      <td><a class="link" href="#/clients/${escapeHtml(c.id)}">Ver detalle<span class="visually-hidden"> de ${escapeHtml(c.fullName)}</span></a></td>
+    </tr>`;
 
-      if (clients.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${columns}" class="table__empty">Todavía no tienes clientes. Crea el primero con "Nuevo cliente".</td></tr>`;
-        return;
-      }
+  // Paginado por cursor (50 por página) y render por lotes que ceden el hilo.
+  const clients = createPagedList({
+    container: root.querySelector("#clients-tbody"),
+    moreButton: root.querySelector("#clients-more"),
+    status: root.querySelector("#clients-status"),
+    fetchPage: (cursor) => clientsApi.list({ cursor }),
+    renderItem: clientRowHtml,
+    emptyHtml: `<tr><td colspan="${columns}" class="table__empty">Todavía no tienes clientes. Crea el primero con "Nuevo cliente".</td></tr>`,
+    errorHtml: (message) =>
+      `<tr><td colspan="${columns}" class="table__empty table__empty--error">${message}</td></tr>`,
+    itemLabel: "clientes",
+  });
 
-      tbody.innerHTML = clients
-        .map(
-          (c) => `
-        <tr>
-          <td class="table__primary">${escapeHtml(c.fullName)}</td>
-          <td>${escapeHtml(c.documentNumber)}</td>
-          <td>${escapeHtml(c.email || "—")}</td>
-          ${isAdmin ? `<td>${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
-          <td>${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
-          <td><a class="link" href="#/clients/${c.id}">Ver detalle</a></td>
-        </tr>`
-        )
-        .join("");
-    } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="${columns}" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
-    }
-  }
-
-  await loadClients();
+  await clients.reload();
 }

@@ -1,7 +1,8 @@
-import { http, LONG_TIMEOUT_MS } from "./http.js";
+import { http, LONG_TIMEOUT_MS, withQuery } from "./http.js";
 
 export const clientsApi = {
-  list: () => http.get("/api/clients"),
+  /** Paginado por cursor: { items, nextCursor }. */
+  list: ({ cursor, limit } = {}) => http.get(withQuery("/api/clients", { cursor, limit })),
   create: (data) => http.post("/api/clients", data),
   getById: (id) => http.get(`/api/clients/${id}`),
   update: (id, data) => http.patch(`/api/clients/${id}`, data),

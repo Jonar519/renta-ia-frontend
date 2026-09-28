@@ -51,9 +51,16 @@ export async function renderClientDetail(root, clientId) {
   bindSidebarEvents(root);
   bindTabs(root);
 
+  // Se aborta al salir de la vista: cancela la huella SHA-256 o la
+  // agregación en curso y termina los Web Workers de esta vista.
+  const viewAbort = new AbortController();
+
   const alerts = createAlertsSection(root, clientId);
   // Cuando un documento termina, las reglas pueden haber creado alertas nuevas.
-  const documents = createDocumentsSection(root, clientId, { onProcessed: () => alerts.load() });
+  const documents = createDocumentsSection(root, clientId, {
+    signal: viewAbort.signal,
+    onProcessed: () => alerts.load(),
+  });
   createSummarySection(root, clientId);
   createChatSection(root, clientId);
 
@@ -103,7 +110,7 @@ export async function renderClientDetail(root, clientId) {
     offUpdate();
     offStatus();
     poller.stop();
-    documents.dispose();
+    viewAbort.abort();
   });
 
   async function loadClient() {

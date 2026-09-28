@@ -1,6 +1,7 @@
 import { alertsApi } from "../../api/alerts.api.js";
 import { showToast } from "../../components/toast.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
+import { createPagedList } from "../../components/pagedList.js";
 import { ALERT_STATUS, ALERT_TYPE_LABELS, SEVERITY_LABELS, SEVERITY_TONES } from "./labels.js";
 
 export function alertsPanelHtml() {
@@ -11,6 +12,9 @@ export function alertsPanelHtml() {
       <ul class="alert-list" id="alerts-list">
         <li class="table__empty">Cargando...</li>
       </ul>
+      <div class="load-more">
+        <button type="button" class="btn btn--ghost" id="alerts-more" aria-controls="alerts-list" hidden>Cargar más alertas</button>
+      </div>
     </section>
   `;
 }
@@ -47,16 +51,18 @@ export function createAlertsSection(root, clientId) {
   const list = root.querySelector("#alerts-list");
   const liveStatus = root.querySelector("#alerts-status");
 
-  async function load() {
-    try {
-      const alerts = await alertsApi.listByClient(clientId);
-      list.innerHTML = alerts.length
-        ? alerts.map(alertItemHtml).join("")
-        : `<li class="table__empty">No hay alertas para este cliente.</li>`;
-    } catch (err) {
-      list.innerHTML = `<li class="table__empty table__empty--error">${escapeHtml(err.message)}</li>`;
-    }
-  }
+  // Paginado por cursor (50 por página) y render por lotes que ceden el hilo.
+  const alerts = createPagedList({
+    container: list,
+    moreButton: root.querySelector("#alerts-more"),
+    status: liveStatus,
+    fetchPage: (cursor) => alertsApi.listByClient(clientId, { cursor }),
+    renderItem: alertItemHtml,
+    emptyHtml: `<li class="table__empty">No hay alertas para este cliente.</li>`,
+    errorHtml: (message) => `<li class="table__empty table__empty--error">${message}</li>`,
+    itemLabel: "alertas",
+  });
+  const load = () => alerts.reload();
 
   list.addEventListener("click", async (event) => {
     const button = event.target.closest("button[data-alert-id]");
@@ -64,8 +70,10 @@ export function createAlertsSection(root, clientId) {
     const { alertId, alertStatus } = button.dataset;
     button.disabled = true;
     try {
-      await alertsApi.updateStatus(alertId, alertStatus);
-      await load();
+      // Solo se re-renderiza la alerta cambiada (no la lista entera).
+      const updated = await alertsApi.updateStatus(alertId, alertStatus);
+      alerts.replaceItem(alertId, () => updated);
+      list.querySelector(`[data-alert-item="${CSS.escape(alertId)}"]`).outerHTML = alertItemHtml(updated);
       liveStatus.textContent = alertStatus === "resolved" ? "Alerta resuelta." : "Alerta marcada como vista.";
       // El botón pulsado desaparece al re-renderizar: el foco pasa a la alerta.
       list.querySelector(`[data-alert-item="${CSS.escape(alertId)}"]`)?.focus();

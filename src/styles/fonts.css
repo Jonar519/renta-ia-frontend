@@ -1,0 +1,32 @@
+/*
+ * Fuentes autoalojadas (antes: Google Fonts).
+ *
+ * Por qué:
+ *  - Mismo origen: sin DNS/TLS a fonts.googleapis.com + fonts.gstatic.com y
+ *    sin enviar la IP de cada usuario a un tercero.
+ *  - Solo lo que se usa (medido en docs/performance-report.md):
+ *      Inter variable, subconjunto latín (todos los pesos)   48,3 KB
+ *      Source Serif 4 600, subconjunto latín (títulos)        21,5 KB
+ *    frente a 166,7 KB que descargaba Google Fonts (Source Serif 4 variable
+ *    con eje de tamaño óptico, que la app no usa).
+ *  - El subconjunto latín cubre español (á é í ó ú ñ ü ¿ ¡).
+ *  - font-display: swap → el texto se pinta de inmediato con la fuente de
+ *    respaldo y cambia cuando llega la web font (no bloquea el LCP).
+ *  - Los archivos salen con hash en el nombre (caché inmutable) y
+ *    vite.config.js agrega <link rel="preload"> para ambos.
+ */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url("../../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-600-normal.woff2") format("woff2");
+}

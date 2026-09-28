@@ -448,3 +448,48 @@
   font-size: var(--fs-xs);
   color: var(--color-ink-500);
 }
+
+/*
+ * content-visibility: auto → el navegador omite estilo, layout y pintado de
+ * las secciones que están fuera de la pantalla hasta que se acercan al
+ * viewport. contain-intrinsic-size reserva un alto estimado (y "auto"
+ * recuerda el real la próxima vez) para que la barra de scroll no salte.
+ * Medido: el layout era el 50–70 % del trabajo del hilo principal en el
+ * detalle de cliente (docs/performance-report.md).
+ * Nota: no se aplica a filas de tabla (<tr>): la contención no tiene efecto
+ * sobre elementos internos de una tabla; por eso va en el panel completo.
+ */
+.panel--deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+.alert-item {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 110px;
+}
+
+/* "Cargar más" de las listas paginadas */
+.load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+.load-more:has(> button[hidden]:only-of-type) {
+  margin-top: 0;
+}
+
+/* Totales por año gravable (conceptos) */
+.table--totals {
+  margin-bottom: 20px;
+}
+.table--totals caption {
+  text-align: left;
+  font-weight: 500;
+  padding-bottom: 8px;
+  color: var(--color-ink-900);
+}
+.table--totals td,
+.table--totals th[scope="col"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

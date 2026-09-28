@@ -3,6 +3,12 @@
   min-height: 100vh;
 }
 
+/*
+ * Sidebar fijo a la altura de la ventana (sticky). Antes medía lo mismo que
+ * la página: al pasar de una vista alta a una corta (o al llegar datos), el
+ * botón "Cerrar sesión", anclado abajo, saltaba cientos de píxeles y era la
+ * principal causa del CLS del detalle de cliente (docs/performance-report.md).
+ */
 .sidebar {
   width: 240px;
   flex-shrink: 0;
@@ -11,6 +17,10 @@
   display: flex;
   flex-direction: column;
   padding: 24px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar__brand {
@@ -81,6 +91,8 @@
   color: var(--color-ink-500);
   margin-top: 6px;
   font-size: var(--fs-sm);
+  /* Reserva la línea aunque el texto llegue después (evita desplazar las pestañas). */
+  min-height: 1.55em;
 }
 
 @media (max-width: 860px) {
@@ -92,6 +104,8 @@
     flex-direction: row;
     align-items: center;
     padding: 14px 20px;
+    position: static;
+    height: auto;
   }
   .sidebar__nav {
     flex-direction: row;

@@ -79,3 +79,11 @@ export const http = {
   postForm: (path, formData, options) =>
     request(path, { ...options, method: "POST", body: formData, isFormData: true }),
 };
+
+/** Agrega parámetros de query omitiendo los vacíos: withQuery("/x", { cursor: null, limit: 50 }) → "/x?limit=50". */
+export function withQuery(path, params = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== "")
+  ).toString();
+  return query ? `${path}?${query}` : path;
+}

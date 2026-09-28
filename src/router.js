@@ -41,8 +41,23 @@ function runCleanups() {
   }
 }
 
-function resolve({ initial = false } = {}) {
+// Cada navegación tiene un número; si mientras se descarga el código de una
+// vista el usuario navega a otra, la anterior queda "obsoleta" y no se pinta.
+let navigationId = 0;
+let currentPattern = "/login";
+
+/**
+ * Patrón de la ruta actual ("/clients/:id"), nunca la URL real: es lo que se
+ * reporta con las métricas de rendimiento, sin ids de clientes.
+ */
+export function currentRoutePattern() {
+  return currentPattern;
+}
+
+async function resolve({ initial = false } = {}) {
   runCleanups();
+  const currentNavigation = ++navigationId;
+  const context = { isStale: () => currentNavigation !== navigationId };
   const hash = window.location.hash.slice(1) || "/login";
   const hashParts = hash.split("/").filter(Boolean);
 
@@ -63,11 +78,12 @@ function resolve({ initial = false } = {}) {
     }
 
     if (matched) {
-      // Las vistas pintan su HTML (con el <h1>) de forma síncrona antes de
-      // su primer await, así que el <h1> ya existe al volver del handler.
-      route.handler(params);
+      currentPattern = route.pattern;
+      // El handler resuelve cuando la vista ya pintó su estructura (con el
+      // <h1>): las vistas se cargan con import() dinámico (code-splitting).
+      await route.handler(params, context);
       // En la carga inicial de la página no se roba el foco.
-      if (!initial) focusMainHeading();
+      if (!initial && !context.isStale()) focusMainHeading();
       return;
     }
   }
