@@ -11,7 +11,7 @@ export default [
       "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" }],
     },
   },
-  { files: ["public/service-worker.js"], languageOptions: { sourceType: "script", globals: globals.serviceworker } },
+  { files: ["src/sw/service-worker.js"], languageOptions: { sourceType: "script", globals: globals.serviceworker } },
   { files: ["src/workers/**/*.js"], languageOptions: { globals: globals.worker } },
   { files: ["tests/**/*.js", "*.config.js"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
   // Scripts de medición (Node + código que se evalúa dentro del navegador).

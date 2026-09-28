@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { createHash } from "node:crypto";
 import { defineConfig } from "vitest/config";
 
 // Fuentes que se usan en la primera pintura (texto del login y títulos):
@@ -27,8 +30,43 @@ function preloadFonts() {
   };
 }
 
+/**
+ * Emite /service-worker.js en cada build a partir de src/sw/service-worker.js,
+ * con el id del build y la lista real de archivos a precachear. El id es un
+ * hash de los nombres del bundle (que ya llevan hash de contenido): cambia
+ * solo si cambió algo, y así el navegador detecta la versión nueva.
+ * En desarrollo no hay Service Worker (ver src/sw/registerSW.js).
+ */
+function serviceWorker() {
+  return {
+    name: "renta-ia:service-worker",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      const files = Object.keys(bundle)
+        .filter((file) => !file.endsWith(".map"))
+        .sort();
+      const template = fs.readFileSync(path.resolve("src/sw/service-worker.js"), "utf8");
+      // El id cambia si cambia el bundle O el propio código del Service Worker.
+      const buildId = createHash("sha256").update(files.join("\n")).update(template).digest("hex").slice(0, 12);
+      const precache = [
+        "/index.html",
+        "/offline.html",
+        "/favicon.svg",
+        ...files.filter((file) => file.startsWith("assets/")).map((f) => `/${f}`),
+      ];
+      const source = template
+        .replace('const BUILD_ID = "__BUILD_ID__";', `const BUILD_ID = "${buildId}";`)
+        .replace("const PRECACHE_URLS = __PRECACHE_URLS__;", `const PRECACHE_URLS = ${JSON.stringify(precache)};`);
+      if (source.includes('"__BUILD_ID__"') || source.includes("= __PRECACHE_URLS__;")) {
+        throw new Error("service-worker.js: no se pudieron reemplazar __BUILD_ID__ / __PRECACHE_URLS__");
+      }
+      this.emitFile({ type: "asset", fileName: "service-worker.js", source });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [preloadFonts()],
+  plugins: [preloadFonts(), serviceWorker()],
   server: {
     port: 5173,
   },
