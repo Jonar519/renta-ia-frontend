@@ -1,4 +1,4 @@
-import { backoffDelay } from "./backoff.js";
+import { backoffDelay } from "../utils/backoff.js";
 
 /**
  * Cliente WebSocket de notificaciones (API: /ws).

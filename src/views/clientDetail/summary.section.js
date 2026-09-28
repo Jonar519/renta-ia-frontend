@@ -7,7 +7,7 @@ export function summaryPanelHtml() {
     <section class="panel">
       <h2>Resumen ejecutivo</h2>
       <p class="page-subtitle">Totales calculados por el sistema a partir de los conceptos extraídos y un texto redactado por IA con esas mismas cifras.</p>
-      <form id="summary-form" class="upload-form">
+      <form id="summary-form" class="upload-form" data-requires-network>
         <label>Año gravable
           <select name="periodYear" id="summary-year">
             <option value="">El más reciente</option>

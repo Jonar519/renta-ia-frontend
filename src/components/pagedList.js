@@ -57,6 +57,7 @@ export function createPagedList({
       else await appendInBatches(container, items, renderItem);
       updateButton();
     } catch (err) {
+      if (err.name === "AbortError") return items; // se canceló al cambiar de vista
       container.innerHTML = errorHtml(escapeHtml(err.message));
     }
     return items;
@@ -75,6 +76,7 @@ export function createPagedList({
         await appendInBatches(container, page.items, renderItem);
         if (status) status.textContent = `Se cargaron ${page.items.length} ${itemLabel} más.`;
       } catch (err) {
+        if (err.name === "AbortError") return;
         if (status) status.textContent = `No se pudieron cargar más ${itemLabel}: ${err.message}`;
       } finally {
         moreButton.removeAttribute("aria-busy");

@@ -7,7 +7,7 @@ export function chatPanelHtml() {
       <div class="chat-log" id="chat-log" role="log" aria-live="polite" aria-label="Conversación con el asistente de IA">
         <p class="chat-empty">Hazle una pregunta sobre los documentos de este cliente. Por ejemplo: "¿Cuál fue el ingreso bruto reportado?"</p>
       </div>
-      <form id="chat-form" class="chat-form">
+      <form id="chat-form" class="chat-form" data-requires-network>
         <label for="chat-question" class="visually-hidden">Tu pregunta sobre este cliente</label>
         <input type="text" id="chat-question" name="question" placeholder="Escribe tu pregunta..." required minlength="3" maxlength="1000" />
         <button type="submit" class="btn btn--primary">Preguntar</button>

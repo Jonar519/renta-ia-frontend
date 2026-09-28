@@ -1,5 +1,5 @@
 import { clientsApi } from "../../api/clients.api.js";
-import { showToast } from "../../components/toast.js";
+import { showErrorToast } from "../../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../../components/sidebar.js";
 import { bindTabs } from "../../components/tabs.js";
 import { registerCleanup } from "../../router.js";
@@ -124,7 +124,7 @@ export async function renderClientDetail(root, clientId) {
         : client.documentNumber;
     } catch (err) {
       root.querySelector("#client-name").textContent = "Cliente no disponible";
-      showToast(err.message, "error");
+      showErrorToast(err);
     }
   }
 

@@ -1,6 +1,6 @@
 import { clientsApi } from "../../api/clients.api.js";
 import { documentsApi } from "../../api/documents.api.js";
-import { showToast } from "../../components/toast.js";
+import { showErrorToast, showToast } from "../../components/toast.js";
 import { createPagedList } from "../../components/pagedList.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
 import { appendInBatches } from "../../utils/scheduling.js";
@@ -19,7 +19,7 @@ export function documentsPanelHtml() {
   return `
     <section class="panel">
       <h2>Subir documento</h2>
-      <form id="upload-form" class="upload-form">
+      <form id="upload-form" class="upload-form" data-requires-network>
         <label>Tipo de documento
           <select name="docType" required>
             ${Object.entries(DOC_TYPE_LABELS)
@@ -69,7 +69,7 @@ export function documentsPanelHtml() {
 function documentRowHtml(d) {
   const status = documentStatus(d);
   const action = canReprocess(d)
-    ? `<button type="button" class="btn btn--ghost btn--small" data-reprocess-id="${escapeHtml(d.id)}">Reintentar análisis<span class="visually-hidden"> de ${escapeHtml(d.originalName)}</span></button>`
+    ? `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-reprocess-id="${escapeHtml(d.id)}">Reintentar análisis<span class="visually-hidden"> de ${escapeHtml(d.originalName)}</span></button>`
     : "";
   return `
     <tr data-document-id="${escapeHtml(d.id)}">
@@ -215,7 +215,7 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
       applyEvent({ documentId: updated.id, status: updated.status, errorMessage: updated.errorMessage });
       showToast("Análisis reencolado. El estado se actualizará solo.", "success");
     } catch (err) {
-      showToast(err.message, "error");
+      showErrorToast(err);
       button.disabled = false;
     }
   });
@@ -288,7 +288,7 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
         setStatus("Se canceló la preparación del archivo anterior.");
         return;
       }
-      showToast(err.message, "error");
+      showErrorToast(err);
       setStatus(err.message, true);
     } finally {
       uploadBtn.disabled = false;

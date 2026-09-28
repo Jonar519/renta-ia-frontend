@@ -1,5 +1,5 @@
 import { clientsApi } from "../api/clients.api.js";
-import { showToast } from "../components/toast.js";
+import { showErrorToast, showToast } from "../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { getState } from "../state/store.js";
@@ -18,12 +18,12 @@ export async function renderDashboard(root) {
             <h1 class="page-title">Tus clientes</h1>
             <p class="page-subtitle">Administra la información tributaria de cada cliente contribuyente.</p>
           </div>
-          <button id="btn-new-client" class="btn btn--primary" type="button" aria-expanded="false" aria-controls="new-client-panel">Nuevo cliente</button>
+          <button id="btn-new-client" class="btn btn--primary" type="button" data-requires-network aria-expanded="false" aria-controls="new-client-panel">Nuevo cliente</button>
         </header>
 
         <section class="panel" id="new-client-panel" aria-labelledby="new-client-title" hidden>
           <h2 id="new-client-title">Nuevo cliente contribuyente</h2>
-          <form id="new-client-form" class="form-grid">
+          <form id="new-client-form" class="form-grid" data-requires-network>
             <label>Nombre completo
               <input type="text" name="fullName" required minlength="2" maxlength="200" />
             </label>
@@ -105,7 +105,7 @@ export async function renderDashboard(root) {
       closePanel();
       await clients.reload();
     } catch (err) {
-      showToast(err.message, "error");
+      showErrorToast(err);
     }
   });
 

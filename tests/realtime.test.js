@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { backoffDelay } from "../src/realtime/backoff.js";
+import { backoffDelay } from "../src/utils/backoff.js";
 import { createPoller } from "../src/realtime/poller.js";
 
 describe("backoffDelay (exponencial con jitter)", () => {

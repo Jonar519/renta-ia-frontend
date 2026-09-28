@@ -1,5 +1,5 @@
 import { alertsApi } from "../../api/alerts.api.js";
-import { showToast } from "../../components/toast.js";
+import { showErrorToast } from "../../components/toast.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
 import { createPagedList } from "../../components/pagedList.js";
 import { ALERT_STATUS, ALERT_TYPE_LABELS, SEVERITY_LABELS, SEVERITY_TONES } from "./labels.js";
@@ -25,12 +25,12 @@ function alertItemHtml(a) {
   const actions = [];
   if (a.status === "open") {
     actions.push(
-      `<button type="button" class="btn btn--ghost btn--small" data-alert-id="${escapeHtml(a.id)}" data-alert-status="acknowledged">Marcar como vista</button>`
+      `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-alert-id="${escapeHtml(a.id)}" data-alert-status="acknowledged">Marcar como vista</button>`
     );
   }
   if (a.status !== "resolved") {
     actions.push(
-      `<button type="button" class="btn btn--ghost btn--small" data-alert-id="${escapeHtml(a.id)}" data-alert-status="resolved">Resolver</button>`
+      `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-alert-id="${escapeHtml(a.id)}" data-alert-status="resolved">Resolver</button>`
     );
   }
   return `
@@ -78,7 +78,7 @@ export function createAlertsSection(root, clientId) {
       // El botón pulsado desaparece al re-renderizar: el foco pasa a la alerta.
       list.querySelector(`[data-alert-item="${CSS.escape(alertId)}"]`)?.focus();
     } catch (err) {
-      showToast(err.message, "error");
+      showErrorToast(err);
       button.disabled = false;
     }
   });

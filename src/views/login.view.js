@@ -1,6 +1,6 @@
 import { authApi } from "../api/auth.api.js";
 import { setAuth } from "../state/store.js";
-import { showToast } from "../components/toast.js";
+import { showErrorToast, showToast } from "../components/toast.js";
 import { bindTabs } from "../components/tabs.js";
 
 export function renderLogin(root) {
@@ -63,7 +63,7 @@ export function renderLogin(root) {
       showToast(`Bienvenido, ${result.user.name}`, "success");
       window.location.hash = "/";
     } catch (err) {
-      showToast(err.message, "error");
+      showErrorToast(err);
     }
   });
 
@@ -81,7 +81,7 @@ export function renderLogin(root) {
       showToast(`Cuenta creada. Bienvenido, ${result.user.name}`, "success");
       window.location.hash = "/";
     } catch (err) {
-      showToast(err.message, "error");
+      showErrorToast(err);
     }
   });
 }

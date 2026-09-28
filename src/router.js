@@ -29,7 +29,18 @@ export function registerCleanup(fn) {
   cleanups.push(fn);
 }
 
+// Se aborta al salir de la vista: http.js lo usa para cancelar las peticiones
+// GET en vuelo de la vista anterior (ya nadie va a mostrar su resultado).
+let routeController = new AbortController();
+
+/** Señal de la vista actual: se aborta en cuanto el usuario navega a otra. */
+export function getRouteSignal() {
+  return routeController.signal;
+}
+
 function runCleanups() {
+  routeController.abort();
+  routeController = new AbortController();
   const pending = cleanups;
   cleanups = [];
   for (const fn of pending) {

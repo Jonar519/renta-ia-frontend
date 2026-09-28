@@ -75,6 +75,18 @@ function syncRealtime(state) {
 subscribe(syncRealtime);
 syncRealtime(getState());
 
+// Caché offline (IndexedDB): al cerrar sesión se borra toda; al entrar, se
+// borran las de cualquier OTRO usuario que haya usado este navegador.
+// Import dinámico: no hace falta para la primera pintura (presupuesto del
+// chunk de entrada) y el Service Worker lo precachea, así que funciona offline.
+function syncOfflineData(state) {
+  import("./offline/offlineStore.js").then((m) => m.clearOfflineData({ keepUserId: state.user?.id })).catch(() => {});
+}
+subscribe(syncOfflineData);
+syncOfflineData(getState());
+
+import("./components/connectivityBanner.js").then((m) => m.startConnectivityBanner());
+
 startRouter();
 // Métricas de usuarios reales (Web Vitals + tareas largas), anónimas.
 // Se cargan DESPUÉS del evento load y en tiempo ocioso para no competir con
