@@ -11,7 +11,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -24,4 +24,21 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # "build" incluye el presupuesto de tamaño del bundle (scripts/check-bundle.mjs):
+      # falla si el JS de entrada, algún chunk, el CSS o las fuentes crecen de más.
       - run: npm run build
+
+      # Lighthouse CI sobre el build (perfil móvil simulado, 3 corridas) con
+      # presupuestos: LCP < 2,5 s, CLS < 0,1, TBT < 200 ms (proxy de INP en
+      # laboratorio). Empieza en modo ADVERTENCIA: no bloquea el merge.
+      - name: Lighthouse CI (advertencias, no bloquea)
+        continue-on-error: true
+        run: npx --yes @lhci/cli@0.15.1 autorun
+
+      - name: Reportes de Lighthouse
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse
+          path: .lighthouseci
+          if-no-files-found: ignore
