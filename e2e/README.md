@@ -15,9 +15,12 @@ reales se prueba a mano (ver la lista del README raíz).
 1. Base de pruebas con migraciones (desde `renta-ia-database`):
 
    ```bat
+   docker exec renta_ia_postgres psql -U postgres -c "CREATE DATABASE renta_ia_e2e"
    set DB_NAME=renta_ia_e2e
    scripts\migrate.bat
    ```
+
+   (El `CREATE DATABASE` solo la primera vez.)
 
 2. API y worker con IA simulada (desde `renta-ia-backend`, dos ventanas):
 
