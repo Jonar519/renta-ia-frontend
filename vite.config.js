@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
 // Fuentes que se usan en la primera pintura (texto del login y títulos):
@@ -65,8 +66,59 @@ function serviceWorker() {
   };
 }
 
-export default defineConfig({
-  plugins: [preloadFonts(), serviceWorker()],
+/**
+ * Content-Security-Policy estricta (docs/threat-model.md, "XSS"), como
+ * <meta> en el index.html del build. Sin 'unsafe-inline' ni 'unsafe-eval':
+ * solo se ejecuta JavaScript servido por la propia app, y solo se puede
+ * hablar con la API (HTTP y WebSocket) indicada en VITE_API_URL.
+ * En desarrollo no se aplica: el cliente de Vite (HMR) inyecta estilos y
+ * scripts en línea.
+ * Limitación de <meta>: no admite frame-ancestors ni report-uri; en
+ * producción, el servidor que sirva el frontend debe enviar además el
+ * encabezado "Content-Security-Policy: frame-ancestors 'none'" (anti
+ * clickjacking). Queda documentado para el despliegue.
+ */
+export function buildCsp(apiUrl) {
+  const api = new URL(apiUrl);
+  const ws = `${api.protocol === "https:" ? "wss:" : "ws:"}//${api.host}`;
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    `connect-src 'self' ${api.origin} ${ws}`,
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "frame-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
+function contentSecurityPolicy(apiUrl) {
+  return {
+    name: "renta-ia:csp",
+    apply: "build",
+    transformIndexHtml() {
+      return [
+        {
+          tag: "meta",
+          attrs: { "http-equiv": "Content-Security-Policy", content: buildCsp(apiUrl) },
+          injectTo: "head-prepend",
+        },
+      ];
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    preloadFonts(),
+    serviceWorker(),
+    contentSecurityPolicy(loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL || "http://localhost:4000"),
+  ],
   server: {
     port: 5173,
   },
@@ -80,4 +132,4 @@ export default defineConfig({
     include: ["tests/**/*.test.js"],
     restoreMocks: true,
   },
-});
+}));
