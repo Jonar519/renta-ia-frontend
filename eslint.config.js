@@ -14,6 +14,11 @@ export default [
   { files: ["public/service-worker.js"], languageOptions: { sourceType: "script", globals: globals.serviceworker } },
   { files: ["src/workers/**/*.js"], languageOptions: { globals: globals.worker } },
   { files: ["tests/**/*.js", "*.config.js"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
+  // Scripts de medición (Node + código que se evalúa dentro del navegador).
+  {
+    files: ["perf/**/*.mjs", "scripts/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
   // Desactiva reglas de estilo que chocan con Prettier (debe ir al final).
   prettier,
 ];
