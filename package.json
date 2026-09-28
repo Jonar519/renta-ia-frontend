@@ -14,9 +14,11 @@
     "format": "prettier --write .",
     "size": "node scripts/check-bundle.mjs",
     "perf:measure": "node perf/measure.mjs",
-    "perf:profile": "node perf/profile.mjs"
+    "perf:profile": "node perf/profile.mjs",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "eslint": "^10.11.0",
