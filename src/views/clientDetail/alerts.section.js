@@ -1,4 +1,5 @@
 import { alertsApi } from "../../api/alerts.api.js";
+import { can } from "../../auth/permissions.js";
 import { showErrorToast } from "../../components/toast.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
 import { createPagedList } from "../../components/pagedList.js";
@@ -23,12 +24,14 @@ function alertItemHtml(a) {
   const status = ALERT_STATUS[a.status] || { text: a.status, tone: "neutral" };
   const type = ALERT_TYPE_LABELS[a.alertType] || a.alertType;
   const actions = [];
-  if (a.status === "open") {
+  // Solo lectura para el portal del contribuyente.
+  const canUpdate = can("alert.update");
+  if (canUpdate && a.status === "open") {
     actions.push(
       `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-alert-id="${escapeHtml(a.id)}" data-alert-status="acknowledged">Marcar como vista</button>`
     );
   }
-  if (a.status !== "resolved") {
+  if (canUpdate && a.status !== "resolved") {
     actions.push(
       `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-alert-id="${escapeHtml(a.id)}" data-alert-status="resolved">Resolver</button>`
     );

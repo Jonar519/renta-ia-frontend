@@ -1,4 +1,5 @@
 import { clientsApi } from "../../api/clients.api.js";
+import { can } from "../../auth/permissions.js";
 import { documentsApi } from "../../api/documents.api.js";
 import { showErrorToast, showToast } from "../../components/toast.js";
 import { createPagedList } from "../../components/pagedList.js";
@@ -16,24 +17,10 @@ const CONCEPT_ROWS_INITIAL = 100;
 const CONCEPT_ROWS_STEP = 200;
 
 export function documentsPanelHtml() {
+  // El portal del contribuyente (rol client) es de solo lectura: sin subida.
+  const uploadPanel = can("document.write") ? uploadPanelHtml() : "";
   return `
-    <section class="panel">
-      <h2>Subir documento</h2>
-      <form id="upload-form" class="upload-form" data-requires-network>
-        <label>Tipo de documento
-          <select name="docType" required>
-            ${Object.entries(DOC_TYPE_LABELS)
-              .map(([value, label]) => `<option value="${value}">${label}</option>`)
-              .join("")}
-          </select>
-        </label>
-        <label>Archivo (PDF, JPG o PNG · máx. 15 MB)
-          <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required />
-        </label>
-        <button type="submit" class="btn btn--primary" id="upload-btn">Subir y analizar con IA</button>
-      </form>
-      <p id="upload-status" class="form-hint" role="status" aria-live="polite"></p>
-    </section>
+    ${uploadPanel}
 
     <section class="panel panel--deferred">
       <h2>Conceptos tributarios extraídos</h2>
@@ -66,11 +53,33 @@ export function documentsPanelHtml() {
   `;
 }
 
+function uploadPanelHtml() {
+  return `
+    <section class="panel">
+      <h2>Subir documento</h2>
+      <form id="upload-form" class="upload-form" data-requires-network>
+        <label>Tipo de documento
+          <select name="docType" required>
+            ${Object.entries(DOC_TYPE_LABELS)
+              .map(([value, label]) => `<option value="${value}">${label}</option>`)
+              .join("")}
+          </select>
+        </label>
+        <label>Archivo (PDF, JPG o PNG · máx. 15 MB)
+          <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required />
+        </label>
+        <button type="submit" class="btn btn--primary" id="upload-btn">Subir y analizar con IA</button>
+      </form>
+      <p id="upload-status" class="form-hint" role="status" aria-live="polite"></p>
+    </section>`;
+}
+
 function documentRowHtml(d) {
   const status = documentStatus(d);
-  const action = canReprocess(d)
-    ? `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-reprocess-id="${escapeHtml(d.id)}">Reintentar análisis<span class="visually-hidden"> de ${escapeHtml(d.originalName)}</span></button>`
-    : "";
+  const action =
+    canReprocess(d) && can("document.write")
+      ? `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-reprocess-id="${escapeHtml(d.id)}">Reintentar análisis<span class="visually-hidden"> de ${escapeHtml(d.originalName)}</span></button>`
+      : "";
   return `
     <tr data-document-id="${escapeHtml(d.id)}">
       <td class="table__primary">${escapeHtml(d.originalName)}</td>
@@ -222,78 +231,81 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
 
   // --- Subida: validar y calcular el SHA-256 en el Worker, consultar duplicados, subir ---
   const uploadForm = root.querySelector("#upload-form");
-  const uploadStatus = root.querySelector("#upload-status");
-  const uploadBtn = root.querySelector("#upload-btn");
-  const fileInput = uploadForm.querySelector('input[type="file"]');
-  let uploadAbort = null;
+  // Sin formulario (rol client, solo lectura) no hay nada que enlazar.
+  if (uploadForm) {
+    const uploadStatus = root.querySelector("#upload-status");
+    const uploadBtn = root.querySelector("#upload-btn");
+    const fileInput = uploadForm.querySelector('input[type="file"]');
+    let uploadAbort = null;
 
-  function setStatus(text, isError = false) {
-    uploadStatus.classList.toggle("form-hint--error", isError);
-    uploadStatus.textContent = text;
-  }
-
-  // Elegir otro archivo cancela el cálculo de la huella del anterior.
-  fileInput.addEventListener("change", () => uploadAbort?.abort());
-
-  uploadForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const file = fileInput.files[0];
-    if (!file) return;
-
-    uploadAbort?.abort();
-    uploadAbort = new AbortController();
-    const runSignal = AbortSignal.any([uploadAbort.signal, signal]);
-    uploadBtn.disabled = true;
-
-    try {
-      setStatus("Validando archivo...");
-      const { valid, errors } = await uploadWorker.run(
-        "validate",
-        { name: file.name, size: file.size },
-        { signal: runSignal }
-      );
-      if (!valid) {
-        setStatus(errors.join(" "), true);
-        return;
-      }
-
-      setStatus("Calculando la huella del archivo...");
-      const { sha256 } = await uploadWorker.run("hash", { file }, { signal: runSignal });
-
-      // Consulta previa: si ya existe, no se transfiere el archivo.
-      const existing = await documentsApi.findByHash(clientId, sha256);
-      if (existing.exists) {
-        const when = new Date(existing.document.uploadedAt).toLocaleString("es-CO");
-        setStatus(
-          `Este archivo ya se subió como "${existing.document.originalName}" (${when}); no se volvió a subir.`,
-          true
-        );
-        return;
-      }
-
-      setStatus("Subiendo y encolando para análisis con IA...");
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("clientId", clientId);
-      formData.append("docType", uploadForm.docType.value);
-      formData.append("sha256", sha256);
-      await documentsApi.upload(formData);
-
-      showToast("Documento subido. El análisis con IA corre en segundo plano.", "success");
-      setStatus("Documento subido. Su estado se actualizará automáticamente.");
-      uploadForm.reset();
-      await documents.reload();
-    } catch (err) {
-      if (err.name === "AbortError") {
-        setStatus("Se canceló la preparación del archivo anterior.");
-        return;
-      }
-      showErrorToast(err);
-      setStatus(err.message, true);
-    } finally {
-      uploadBtn.disabled = false;
+    function setStatus(text, isError = false) {
+      uploadStatus.classList.toggle("form-hint--error", isError);
+      uploadStatus.textContent = text;
     }
-  });
+
+    // Elegir otro archivo cancela el cálculo de la huella del anterior.
+    fileInput.addEventListener("change", () => uploadAbort?.abort());
+
+    uploadForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      uploadAbort?.abort();
+      uploadAbort = new AbortController();
+      const runSignal = AbortSignal.any([uploadAbort.signal, signal]);
+      uploadBtn.disabled = true;
+
+      try {
+        setStatus("Validando archivo...");
+        const { valid, errors } = await uploadWorker.run(
+          "validate",
+          { name: file.name, size: file.size },
+          { signal: runSignal }
+        );
+        if (!valid) {
+          setStatus(errors.join(" "), true);
+          return;
+        }
+
+        setStatus("Calculando la huella del archivo...");
+        const { sha256 } = await uploadWorker.run("hash", { file }, { signal: runSignal });
+
+        // Consulta previa: si ya existe, no se transfiere el archivo.
+        const existing = await documentsApi.findByHash(clientId, sha256);
+        if (existing.exists) {
+          const when = new Date(existing.document.uploadedAt).toLocaleString("es-CO");
+          setStatus(
+            `Este archivo ya se subió como "${existing.document.originalName}" (${when}); no se volvió a subir.`,
+            true
+          );
+          return;
+        }
+
+        setStatus("Subiendo y encolando para análisis con IA...");
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("clientId", clientId);
+        formData.append("docType", uploadForm.docType.value);
+        formData.append("sha256", sha256);
+        await documentsApi.upload(formData);
+
+        showToast("Documento subido. El análisis con IA corre en segundo plano.", "success");
+        setStatus("Documento subido. Su estado se actualizará automáticamente.");
+        uploadForm.reset();
+        await documents.reload();
+      } catch (err) {
+        if (err.name === "AbortError") {
+          setStatus("Se canceló la preparación del archivo anterior.");
+          return;
+        }
+        showErrorToast(err);
+        setStatus(err.message, true);
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+  }
 
   return {
     load: () => Promise.all([documents.reload(), loadConcepts()]),

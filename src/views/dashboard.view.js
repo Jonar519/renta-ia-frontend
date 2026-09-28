@@ -4,6 +4,7 @@ import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { getState } from "../state/store.js";
 import { createPagedList } from "../components/pagedList.js";
+import { can } from "../auth/permissions.js";
 
 export async function renderDashboard(root) {
   // El admin ve los clientes de todos los contadores: se agrega la columna "Contador".
@@ -71,43 +72,49 @@ export async function renderDashboard(root) {
 
   bindSidebarEvents(root);
 
-  const panel = root.querySelector("#new-client-panel");
-  const form = root.querySelector("#new-client-form");
-  const newClientBtn = root.querySelector("#btn-new-client");
+  // Asistentes y usuarios de portal no crean clientes (la API también lo impide).
+  if (can("client.create")) {
+    const panel = root.querySelector("#new-client-panel");
+    const form = root.querySelector("#new-client-form");
+    const newClientBtn = root.querySelector("#btn-new-client");
 
-  function openPanel() {
-    panel.hidden = false;
-    newClientBtn.setAttribute("aria-expanded", "true");
-    form.elements.fullName.focus();
-  }
-
-  // Al cerrar, el foco vuelve al botón que abrió el panel.
-  function closePanel() {
-    panel.hidden = true;
-    newClientBtn.setAttribute("aria-expanded", "false");
-    form.reset();
-    newClientBtn.focus();
-  }
-
-  newClientBtn.addEventListener("click", openPanel);
-  root.querySelector("#btn-cancel-client").addEventListener("click", closePanel);
-  panel.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closePanel();
-  });
-
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const data = Object.fromEntries(new FormData(form).entries());
-
-    try {
-      await clientsApi.create(data);
-      showToast("Cliente creado correctamente", "success");
-      closePanel();
-      await clients.reload();
-    } catch (err) {
-      showErrorToast(err);
+    function openPanel() {
+      panel.hidden = false;
+      newClientBtn.setAttribute("aria-expanded", "true");
+      form.elements.fullName.focus();
     }
-  });
+
+    // Al cerrar, el foco vuelve al botón que abrió el panel.
+    function closePanel() {
+      panel.hidden = true;
+      newClientBtn.setAttribute("aria-expanded", "false");
+      form.reset();
+      newClientBtn.focus();
+    }
+
+    newClientBtn.addEventListener("click", openPanel);
+    root.querySelector("#btn-cancel-client").addEventListener("click", closePanel);
+    panel.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closePanel();
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        await clientsApi.create(data);
+        showToast("Cliente creado correctamente", "success");
+        closePanel();
+        await clients.reload();
+      } catch (err) {
+        showErrorToast(err);
+      }
+    });
+  } else {
+    root.querySelector("#btn-new-client").remove();
+    root.querySelector("#new-client-panel").remove();
+  }
 
   const clientRowHtml = (c) => `
     <tr>

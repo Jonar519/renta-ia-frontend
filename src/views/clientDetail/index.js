@@ -9,17 +9,22 @@ import { createDocumentsSection, documentsPanelHtml } from "./documents.section.
 import { alertsPanelHtml, createAlertsSection } from "./alerts.section.js";
 import { createSummarySection, summaryPanelHtml } from "./summary.section.js";
 import { chatPanelHtml, createChatSection } from "./chat.section.js";
+import { can } from "../../auth/permissions.js";
 
 export { documentStatus } from "./labels.js";
 
 const TABS = [
   ["documents", "Documentos", documentsPanelHtml],
   ["alerts", "Alertas", alertsPanelHtml],
-  ["summary", "Resumen", summaryPanelHtml],
-  ["chat", "Asistente IA", chatPanelHtml],
+  ["summary", "Resumen", summaryPanelHtml, "ai.use"],
+  ["chat", "Asistente IA", chatPanelHtml, "ai.use"],
 ];
 
 export async function renderClientDetail(root, clientId) {
+  // El resumen y el chat consumen créditos de IA: no se muestran al portal
+  // del contribuyente (rol client, solo lectura; la API también lo impide).
+  const tabs = TABS.filter(([, , , permission]) => !permission || can(permission));
+  const aiEnabled = can("ai.use");
   root.innerHTML = `
     <div class="app-shell">
       ${renderSidebar("dashboard")}
@@ -34,16 +39,20 @@ export async function renderClientDetail(root, clientId) {
         </header>
 
         <div class="tabs" role="tablist" aria-label="Secciones del cliente">
-          ${TABS.map(
-            ([id, label], i) =>
-              `<button class="tab" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${i === 0}" type="button">${label}</button>`
-          ).join("")}
+          ${tabs
+            .map(
+              ([id, label], i) =>
+                `<button class="tab" role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${i === 0}" type="button">${label}</button>`
+            )
+            .join("")}
         </div>
 
-        ${TABS.map(
-          ([id, , html], i) =>
-            `<div class="tab-panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" tabindex="0"${i === 0 ? "" : " hidden"}>${html()}</div>`
-        ).join("")}
+        ${tabs
+          .map(
+            ([id, , html], i) =>
+              `<div class="tab-panel" role="tabpanel" id="panel-${id}" aria-labelledby="tab-${id}" tabindex="0"${i === 0 ? "" : " hidden"}>${html()}</div>`
+          )
+          .join("")}
       </main>
     </div>
   `;
@@ -61,8 +70,10 @@ export async function renderClientDetail(root, clientId) {
     signal: viewAbort.signal,
     onProcessed: () => alerts.load(),
   });
-  createSummarySection(root, clientId);
-  createChatSection(root, clientId);
+  if (aiEnabled) {
+    createSummarySection(root, clientId);
+    createChatSection(root, clientId);
+  }
 
   // --- Estado en tiempo real: WebSocket, con polling de respaldo ---
   const liveStatus = root.querySelector("#live-status");
