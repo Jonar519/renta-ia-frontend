@@ -1,4 +1,5 @@
-import { clearAuth, getState } from "../state/store.js";
+import { getState } from "../state/store.js";
+import { logout } from "../auth/session.js";
 
 export function renderSidebar(active) {
   const link = (id, href, label) =>
@@ -21,7 +22,7 @@ export function bindSidebarEvents(root) {
   if (!logoutBtn) return;
 
   logoutBtn.addEventListener("click", () => {
-    clearAuth();
-    window.location.hash = "/login";
+    logoutBtn.disabled = true;
+    logout();
   });
 }

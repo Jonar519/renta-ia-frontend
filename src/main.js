@@ -5,7 +5,8 @@ import "./styles/layout.css";
 import "./styles/components.css";
 
 import { registerRoute, startRouter } from "./router.js";
-import { getState, subscribe } from "./state/store.js";
+import { getState, hasSession, subscribe } from "./state/store.js";
+import { restoreSession } from "./auth/session.js";
 import { startRealtime, stopRealtime } from "./realtime/realtime.js";
 import { registerServiceWorker } from "./sw/registerSW.js";
 
@@ -20,7 +21,7 @@ const app = document.getElementById("app");
  */
 function lazyView(load, render, { auth = true } = {}) {
   return async (params, { isStale }) => {
-    if (auth && !getState().token) {
+    if (auth && !hasSession()) {
       window.location.hash = "/login";
       return;
     }
@@ -87,6 +88,8 @@ syncOfflineData(getState());
 
 import("./components/connectivityBanner.js").then((m) => m.startConnectivityBanner());
 
+// Recupera la sesión con la cookie de refresh (en paralelo con la primera vista).
+restoreSession();
 startRouter();
 // Métricas de usuarios reales (Web Vitals + tareas largas), anónimas.
 // Se cargan DESPUÉS del evento load y en tiempo ocioso para no competir con

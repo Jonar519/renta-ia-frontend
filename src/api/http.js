@@ -1,4 +1,5 @@
-import { getState, clearAuth } from "../state/store.js";
+import { getState } from "../state/store.js";
+import { CSRF_HEADERS, refreshSession } from "../auth/session.js";
 import { getRouteSignal } from "../router.js";
 import { backoffDelay } from "../utils/backoff.js";
 import { isOfflineCacheable, readOfflineResponse, saveOfflineResponse } from "../offline/offlineStore.js";
@@ -26,6 +27,9 @@ export const NETWORK_ERROR_MESSAGE =
   "No se pudo conectar con el servidor. Revisa tu conexión a internet o intenta de nuevo en unos minutos.";
 export const TIMEOUT_ERROR_MESSAGE = "El servidor tardó demasiado en responder. Intenta de nuevo.";
 export const SESSION_EXPIRED_MESSAGE = "Tu sesión expiró. Inicia sesión de nuevo.";
+// Rutas de login/registro: reciben la cookie de refresh (credentials) y no
+// disparan el refresh automático ante un 401 (credenciales incorrectas).
+const isAuthPath = (path) => path.startsWith("/api/auth/");
 export const OFFLINE_WRITE_ERROR = "Sin conexión: esta acción necesita internet. No se guardó ningún cambio.";
 
 /** Error de red/HTTP con su tipo: "network" | "timeout" | "http" | "offline". */
@@ -101,11 +105,32 @@ async function request(
     throw new HttpError(OFFLINE_WRITE_ERROR, { kind: "offline" });
   }
 
-  const { token, user } = getState();
+  const authPath = isAuthPath(path);
+  // Hay pista de sesión pero aún no hay token (recién abierta la app): se
+  // espera el refresh en curso en vez de enviar la petición sin token.
+  if (!authPath && !getState().token && getState().user) {
+    await refreshSession().catch(() => null);
+  }
+
+  const { user } = getState();
   const headers = {};
   if (!isFormData) headers["Content-Type"] = "application/json";
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const init = { method, headers, body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined };
+  if (authPath) Object.assign(headers, CSRF_HEADERS);
+  const init = {
+    method,
+    headers,
+    body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
+    // La cookie de refresh solo viaja a /api/auth (además tiene Path=/api/auth).
+    credentials: authPath ? "include" : "same-origin",
+  };
+  const withToken = () => {
+    const { token } = getState();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    else delete headers["Authorization"];
+    return Boolean(token);
+  };
+  let sentToken = withToken();
+  let refreshed = false;
 
   // Los GET de una vista se cancelan si el usuario navega a otra: su
   // resultado ya no se mostraría. Las escrituras no se cancelan a medias.
@@ -143,11 +168,20 @@ async function request(
     }
     reportNetworkOk();
 
-    // Solo es "sesión expirada" si se envió un token. Un 401 sin token es,
-    // por ejemplo, un login con credenciales incorrectas: se muestra tal cual.
-    if (response.status === 401 && token) {
-      clearAuth();
-      window.location.hash = "/login";
+    // 401 con sesión: el access token (15 min) venció. Se renueva UNA vez
+    // con la cookie de refresh y se repite la petición. Si la renovación
+    // falla, refreshSession ya cerró la sesión local. Un 401 en /api/auth
+    // (credenciales incorrectas) se muestra tal cual.
+    if (response.status === 401 && !authPath && (sentToken || getState().user)) {
+      if (!refreshed) {
+        refreshed = true;
+        const newToken = await refreshSession().catch(() => null);
+        if (newToken) {
+          sentToken = withToken();
+          attempt--; // el reintento por sesión no consume reintentos de red
+          continue;
+        }
+      }
       throw new HttpError(SESSION_EXPIRED_MESSAGE, { kind: "http", status: 401 });
     }
 

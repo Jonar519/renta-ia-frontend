@@ -1,5 +1,5 @@
 import { authApi } from "../api/auth.api.js";
-import { setAuth } from "../state/store.js";
+import { startSession } from "../auth/session.js";
 import { showErrorToast, showToast } from "../components/toast.js";
 import { bindTabs } from "../components/tabs.js";
 
@@ -36,8 +36,9 @@ export function renderLogin(root) {
             <input type="email" name="email" required autocomplete="email" />
           </label>
           <label>Contraseña
-            <input type="password" name="password" required minlength="8" maxlength="72" autocomplete="new-password" />
+            <input type="password" name="password" required minlength="10" maxlength="72" autocomplete="new-password" aria-describedby="password-hint" />
           </label>
+          <p class="auth-hint" id="password-hint">Mínimo 10 caracteres. Una frase de varias palabras es más segura que una clave corta con símbolos. No uses tu nombre ni tu correo.</p>
           <button type="submit" class="btn btn--primary btn--block">Crear cuenta</button>
         </form>
         </div>
@@ -59,7 +60,7 @@ export function renderLogin(root) {
         email: formData.get("email"),
         password: formData.get("password"),
       });
-      setAuth(result.token, result.user);
+      startSession(result);
       showToast(`Bienvenido, ${result.user.name}`, "success");
       window.location.hash = "/";
     } catch (err) {
@@ -77,7 +78,7 @@ export function renderLogin(root) {
         email: formData.get("email"),
         password: formData.get("password"),
       });
-      setAuth(result.token, result.user);
+      startSession(result);
       showToast(`Cuenta creada. Bienvenido, ${result.user.name}`, "success");
       window.location.hash = "/";
     } catch (err) {

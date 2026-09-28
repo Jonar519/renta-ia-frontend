@@ -277,6 +277,11 @@
   flex-direction: column;
   gap: 14px;
 }
+.auth-hint {
+  margin: -6px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-ink-500);
+}
 
 /* Chat con IA */
 .chat-log {
