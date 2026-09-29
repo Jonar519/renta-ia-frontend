@@ -11,17 +11,153 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24.13.1
           cache: npm
 
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # "build" incluye el presupuesto de tamaño del bundle (scripts/check-bundle.mjs):
+      # falla si el JS de entrada, algún chunk, el CSS o las fuentes crecen de más.
       - run: npm run build
+
+      # Lighthouse CI sobre el build (perfil móvil simulado, 3 corridas) con
+      # presupuestos: LCP < 2,5 s, CLS < 0,1, TBT < 200 ms (proxy de INP en
+      # laboratorio). Empieza en modo ADVERTENCIA: no bloquea el merge.
+      - name: Lighthouse CI (advertencias, no bloquea)
+        continue-on-error: true
+        run: npx --yes @lhci/cli@0.15.1 autorun
+
+      - name: Reportes de Lighthouse
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse
+          path: .lighthouseci
+          if-no-files-found: ignore
+
+  # Seguridad (Fase 4, docs/threat-model.md del backend):
+  #  - npm audit de las dependencias de PRODUCCIÓN (lo que llega al navegador).
+  #    Las de desarrollo (vite, vitest) se revisan a mano: ver docs/security.md.
+  #  - gitleaks sobre todo el historial.
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+      - name: npm audit (dependencias de producción)
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: gitleaks (secretos en el historial)
+        run: docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:v8.21.2 git /repo --redact --verbose
+
+  # E2E del flujo crítico (Playwright + axe) contra el stack real con IA
+  # simulada (AI_PROVIDER=mock). Al principio NO bloquea: si falla, el job se
+  # marca con advertencia y el reporte queda como artefacto.
+  # Necesita leer los repos renta-ia-backend y renta-ia-database (secret
+  # SIBLING_REPOS_TOKEN si son privados; ramas: variables BACKEND_REPO_REF y
+  # DATABASE_REPO_REF, por defecto main).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: renta_ia_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/renta_ia_e2e
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: e2e
+      AI_PROVIDER: mock
+      AI_MOCK_LATENCY_MS: "1500"
+      JWT_SECRET: secreto-solo-para-e2e-en-ci
+      CORS_ORIGIN: http://localhost:4173
+      STORAGE_LOCAL_PATH: /tmp/renta-ia-e2e-uploads
+      PORT: "4000"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout de renta-ia-backend
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/renta-ia-backend
+          ref: ${{ vars.BACKEND_REPO_REF || 'main' }}
+          token: ${{ secrets.SIBLING_REPOS_TOKEN || github.token }}
+          path: _backend
+      - name: Checkout de renta-ia-database
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/renta-ia-database
+          ref: ${{ vars.DATABASE_REPO_REF || 'main' }}
+          token: ${{ secrets.SIBLING_REPOS_TOKEN || github.token }}
+          path: _database
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+      - name: Migraciones
+        run: bash _database/scripts/migrate.sh
+      - name: API y worker (IA simulada)
+        working-directory: _backend
+        run: |
+          npm ci
+          npx prisma generate
+          npm run build
+          nohup node dist/server.js > ../api.log 2>&1 &
+          nohup node dist/workers/documentProcessing.worker.js > ../worker.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4000/ready && exit 0; sleep 1; done
+          cat ../api.log; exit 1
+      - name: Build del frontend contra esa API y vite preview
+        env:
+          VITE_API_URL: http://localhost:4000
+        run: |
+          npm ci
+          npm run build
+          nohup npx vite preview --port 4173 --strictPort > preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4173 > /dev/null && exit 0; sleep 1; done
+          exit 1
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright (flujo crítico + axe)
+        env:
+          CI: "true"
+        run: npm run test:e2e
+      - name: Reporte y logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e
+          path: |
+            playwright-report
+            test-results
+            api.log
+            worker.log
+          if-no-files-found: ignore

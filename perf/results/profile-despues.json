@@ -1,0 +1,24 @@
+{
+  "label": "despues",
+  "date": "2026-09-28T03:28:08.610Z",
+  "carga": {
+    "porTipo": {
+      "Layout": 69,
+      "Pintado": 20,
+      "Recálculo de estilos": 15,
+      "Parseo de HTML (innerHTML)": 8,
+      "JavaScript": 5,
+      "Recolección de basura": 2
+    },
+    "tareasLargasMs": []
+  },
+  "clicsEnPestanas": {
+    "porTipo": {
+      "Layout": 27,
+      "JavaScript": 13,
+      "Pintado": 11,
+      "Recálculo de estilos": 8
+    },
+    "tareasLargasMs": []
+  }
+}

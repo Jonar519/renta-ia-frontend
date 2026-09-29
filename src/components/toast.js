@@ -17,3 +17,13 @@ export function showToast(message, type = "info") {
     setTimeout(() => toast.remove(), 250);
   }, 4000);
 }
+
+/**
+ * Muestra el error de una operación. Ignora las cancelaciones (AbortError):
+ * cuando el usuario cambia de vista, las peticiones de la vista anterior se
+ * cancelan a propósito y no deben aparecer como error en la vista nueva.
+ */
+export function showErrorToast(err) {
+  if (err?.name === "AbortError") return;
+  showToast(err?.message ?? String(err), "error");
+}

@@ -1,0 +1,25 @@
+{
+  "label": "antes",
+  "date": "2026-09-28T03:09:26.534Z",
+  "carga": {
+    "porTipo": {
+      "Layout": 516,
+      "Recálculo de estilos": 208,
+      "Parseo de HTML (innerHTML)": 143,
+      "Pintado": 115,
+      "JavaScript": 94,
+      "Recolección de basura": 3
+    },
+    "tareasLargasMs": [60, 106, 734, 385, 716]
+  },
+  "clicsEnPestanas": {
+    "porTipo": {
+      "Layout": 1321,
+      "Pintado": 397,
+      "Recálculo de estilos": 190,
+      "JavaScript": 134,
+      "Recolección de basura": 9
+    },
+    "tareasLargasMs": [83, 229, 1164]
+  }
+}

@@ -1,122 +1,117 @@
 # renta-ia-frontend
 
-Interfaz web (SPA) del **Sistema de Gestión Documental Contable con IA**: registro/login, gestión de clientes, subida y seguimiento de documentos, conceptos tributarios extraídos por IA, alertas y un chat con IA sobre la información de cada cliente.
+Interfaz web (SPA) del **Sistema de Gestión Documental Contable con IA**: registro
+y login, clientes, subida y seguimiento de documentos **en tiempo real**, conceptos
+tributarios extraídos por IA, alertas, resumen ejecutivo y chat sobre cada cliente.
 
-Construida en **JavaScript sin framework**, con Vite como herramienta de build/desarrollo — tal como se definió en la arquitectura del proyecto (control fino del hilo principal y del pipeline de renderizado).
+**JavaScript sin framework** con Vite solo para el build
+([ADR 0001](../renta-ia-backend/docs/adr/0001-js-sin-framework-y-router-hash.md)).
 
-## Estructura del proyecto
+- Rendimiento medido antes/después: [`docs/performance-report.md`](docs/performance-report.md)
+- Política de caché y offline: [`docs/cache-policy.md`](docs/cache-policy.md)
+- Seguridad (sesión, CSP, dependencias): [`docs/security.md`](docs/security.md)
+- E2E: [`e2e/README.md`](e2e/README.md)
+
+## Estructura
 
 ```
 renta-ia-frontend/
-├── index.html
-├── public/
-│   ├── favicon.svg
-│   └── service-worker.js       # Cache de assets estáticos (la API nunca se cachea)
+├── index.html · vite.config.js      # build: preload de fuentes, Service Worker versionado, CSP
+├── public/offline.html
 ├── src/
-│   ├── main.js                  # Punto de entrada: router + vistas
-│   ├── router.js                 # Router propio, basado en hash (#/...)
-│   ├── state/store.js            # Estado de sesión (token/usuario), patrón pub/sub
-│   ├── api/                      # Un módulo por recurso del backend
-│   ├── views/                    # login, dashboard (clientes), detalle de cliente
-│   ├── components/               # sidebar, toast
-│   ├── workers/
-│   │   └── fileValidation.worker.js   # Valida el archivo ANTES de subirlo, sin bloquear la UI
-│   ├── sw/registerSW.js          # Registro del Service Worker
-│   └── styles/                   # tokens.css, base.css, layout.css, components.css
-├── tests/                        # Vitest + jsdom (ej. http.test.js)
-├── eslint.config.js · .prettierrc
+│   ├── main.js · router.js          # router por hash, vistas con code-splitting
+│   ├── state/store.js               # sesión: access token SOLO en memoria
+│   ├── auth/                        # session.js (refresh single-flight, logout), permissions.js (UI por rol)
+│   ├── api/                         # http.js (timeouts, reintentos GET, renovación ante 401, offline) + un módulo por recurso
+│   ├── views/                       # login, dashboard, detalle de cliente (pestañas), rendimiento
+│   ├── components/                  # sidebar, toast, tabs, pagedList, banners de conexión/actualización
+│   ├── realtime/                    # WebSocket con respaldo de polling
+│   ├── offline/                     # IndexedDB por usuario (solo lectura, 24 h) y estado de conexión
+│   ├── workers/                     # Web Workers: SHA-256 del archivo, agregación de conceptos
+│   ├── sw/                          # Service Worker y su registro
+│   ├── metrics/webVitals.js         # RUM anónimo
+│   └── styles/
+├── tests/                           # Vitest + jsdom
+├── e2e/                             # Playwright + axe
+├── perf/                            # mediciones de rendimiento (Playwright)
+└── scripts/check-bundle.mjs         # presupuesto de tamaño en cada build
 ```
-
-## Requisitos
-
-- Node.js 20 o superior
-- El repositorio `renta-ia-backend` corriendo (API en `npm run dev`, worker en `npm run worker`)
 
 ## Puesta en marcha (Windows · cmd.exe)
 
-Parado dentro de la carpeta `renta-ia-frontend`:
+Requisitos: Node.js 20+ y el backend corriendo (API + worker; ver el README raíz).
+El CI usa exactamente **Node 24.13.1** (la versión de desarrollo; `node-version` en
+`.github/workflows/ci.yml`). Los tests también pasan en Node 20.
 
 ```bat
-:: 1. Instalar dependencias
 npm install
-
-:: 2. Crear el archivo de variables de entorno
 copy .env.example .env
-
-:: 3. Levantar el servidor de desarrollo
 npm run dev
 ```
 
-Vite te dará una URL, normalmente `http://localhost:5173`. Ábrela en el navegador.
+Abre **http://localhost:5173**. En desarrollo no hay Service Worker ni CSP
+(se aplican en el build).
 
-**Importante:** para que la app funcione de verdad, necesitas tener corriendo **al mismo tiempo** (cada uno en su propia ventana de cmd):
+| Variable       | Descripción                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL` | URL de la API (por defecto `http://localhost:4000`). También define `connect-src` de la CSP del build |
 
-1. Docker: contenedores de Postgres y Redis
-2. `renta-ia-backend` → `npm run dev` (la API, puerto 4000)
-3. `renta-ia-backend` → `npm run worker` (el procesador de IA)
-4. `renta-ia-frontend` → `npm run dev` (esta app, puerto 5173)
+Build de producción y vista previa (con Service Worker y CSP):
 
-## Variables de entorno (`.env`)
+```bat
+npm run build
+npm run preview
+```
 
-| Variable       | Descripción                                                  |
-| -------------- | ------------------------------------------------------------ |
-| `VITE_API_URL` | URL base del backend. En desarrollo: `http://localhost:4000` |
+`npm run build` falla si se supera el presupuesto de tamaño (JS de entrada ≤ 4 KB gzip,
+chunk más grande ≤ 10 KB, JS total ≤ 30 KB, CSS ≤ 4 KB, fuentes ≤ 75 KB).
 
-## Cómo está armada la app (sin framework)
+## Sesión
 
-- **Router propio** (`router.js`): un router basado en el hash de la URL (`#/`, `#/clients/:id`), con soporte de parámetros dinámicos. No usa ninguna librería.
-- **Vistas** (`views/`): cada vista es una función que recibe el elemento raíz del DOM y construye su HTML con template strings, luego conecta los `addEventListener` necesarios. No hay virtual DOM: las actualizaciones parciales (como recargar la tabla de documentos) se hacen re-generando el `innerHTML` de un contenedor puntual, no de toda la página.
-- **Estado** (`state/store.js`): un objeto simple con un patrón pub/sub, que persiste el token de sesión en `localStorage`.
+El access token (15 min) vive **solo en memoria**; al recargar, la app lo recupera
+con la cookie `httpOnly` de refresh (que JavaScript no puede leer). En
+`localStorage` solo queda una pista sin secretos (`id`, `name`, `role`).
+Frontend y API deben ser del **mismo sitio** (p. ej. `app.x` y `api.x`): ver
+[ADR 0007](../renta-ia-backend/docs/adr/0007-esquema-de-sesion.md).
 
-  > **Nota de seguridad:** guardar el JWT en `localStorage` es una simplificación válida para este proyecto de curso, pero tiene un riesgo conocido (accesible por JavaScript malicioso en caso de un ataque XSS). En un entorno de producción más estricto, se preferiría una cookie `httpOnly`. Queda documentado como una mejora posible.
+La interfaz se adapta al rol: el asistente no ve "Nuevo cliente"; el usuario de
+portal (`client`) ve su expediente en solo lectura, sin subida, resumen ni chat.
 
-- **Web Worker** (`workers/fileValidation.worker.js`): antes de subir un archivo, se valida su tipo y tamaño en un hilo separado, para que la interfaz nunca se bloquee, ni siquiera con archivos grandes.
-- **Service Worker** (`public/service-worker.js`): cachea solo los assets estáticos de la app (cache-first). Las llamadas a la API son **network-only**: sus respuestas contienen datos tributarios y no deben quedar guardadas en el dispositivo (por ejemplo, en un equipo compartido después de cerrar sesión). Nunca intercepta `POST`/`PATCH`/`DELETE`.
+## Técnicas de la plataforma que usa
+
+- **Router por hash** con cancelación de peticiones y limpieza de suscripciones al cambiar de vista.
+- **Web Workers**: validación y SHA-256 del archivo antes de subirlo; agregación de miles de conceptos.
+- **Render por lotes** cediendo el hilo principal (`src/utils/scheduling.js`) y listas paginadas por cursor.
+- **WebSocket** para el estado de los documentos, con polling de respaldo con backoff.
+- **Service Worker**: shell con stale-while-revalidate y aviso de versión nueva, assets inmutables, página offline; nunca intercepta `/api/`.
+- **IndexedDB**: copia de solo lectura por usuario con caducidad; sin red, las escrituras se bloquean.
+- **Web Vitals** (RUM) y vista "Rendimiento" para el admin.
 
 ## Accesibilidad
 
-- Pestañas con el patrón WAI-ARIA (`src/components/tabs.js`): `role="tablist"/"tab"/"tabpanel"`, `aria-selected`, navegación con flechas, Inicio y Fin.
-- Regiones `aria-live` en las notificaciones (errores con `role="alert"`), el chat (`role="log"`) y el estado de la subida.
-- Al cambiar de vista, el foco pasa al `<h1>` de la vista nueva; enlace "Saltar al contenido principal" al inicio.
-- Tablas con `<caption>` y `scope="col"`; todos los campos tienen `<label>`.
-- Contraste de texto WCAG AA (≥ 4.5:1), incluidos los badges de estado (ver `tokens.css`).
+Pestañas WAI-ARIA con teclado, regiones `aria-live`, foco al `<h1>` al cambiar de
+vista, enlace "Saltar al contenido", tablas con `<caption>`/`scope`, contraste AA
+y `prefers-reduced-motion`. El E2E corre **axe** (WCAG 2.1 A/AA) en login,
+dashboard y detalle: 0 violaciones _serious/critical_ en las corridas del 2026-09-28.
+La prueba con lector de pantalla real es manual (ver el README raíz).
 
-## Sistema de diseño
-
-Paleta "Midnight Executive" (consistente con el resto del proyecto — arquitectura y presentación): navy (`#16233A` / `#1F3B57`) para la marca y la navegación, ámbar (`#B9770E`) reservado específicamente para todo lo relacionado con IA (burbujas del chat, por ejemplo), verde/rojo/azul para estados (procesado, alerta crítica, informativo). Tipografía serif (Source Serif 4) para encabezados —tono de "documento oficial"— y sans (Inter) para interfaz y datos, priorizando la legibilidad en tablas densas.
-
-## Flujo de uso
-
-1. Crear una cuenta o iniciar sesión.
-2. Crear un cliente contribuyente (cédula/NIT, nombre).
-3. Entrar al detalle del cliente y subir un documento (PDF con texto real, o imagen JPG/PNG).
-4. El documento se sube y se encola; su estado pasa de `Subido` → `Procesando` → `Procesado`.
-5. Cuando termina, la pestaña "Documentos" muestra los conceptos tributarios extraídos, y la pestaña "Alertas" muestra cualquier inconsistencia detectada.
-6. En la pestaña "Asistente IA", se le pueden hacer preguntas en lenguaje natural sobre los documentos de ese cliente.
-
-## Tests y calidad de código
+## Tests y calidad
 
 ```bat
-:: Tests (Vitest + jsdom)
 npm test
-
-:: Lint (ESLint + Prettier) y build de producción
 npm run lint
 npm run build
-
-:: Formatear el código
-npm run format
+npm run test:e2e
+npm run perf:measure
 ```
 
-## Manejo de errores de red
+- `npm test`: Vitest + jsdom (sesión, http, offline, Service Worker, tiempo real, pestañas, Web Vitals…).
+- `npm run test:e2e`: necesita el stack con IA simulada; ver [`e2e/README.md`](e2e/README.md).
+- CI: lint, tests, build con presupuesto, Lighthouse (advertencia), `security`
+  (`npm audit --omit=dev` + gitleaks) y `e2e` (no bloqueante por ahora).
 
-`src/api/http.js` centraliza todas las llamadas al backend:
+## Pendiente
 
-- **Timeout** con `AbortController`: 15 s por defecto, 60 s para el chat con IA y la subida de archivos.
-- Los errores de red y de timeout se muestran con un mensaje en español, nunca el error crudo del navegador.
-- Un `401` con sesión activa cierra la sesión y vuelve al login; un `401` sin sesión (login incorrecto) muestra el mensaje del servidor.
-- En errores de validación (`400`), el mensaje incluye qué campo corregir (`details` del backend).
-
-## Qué falta (próxima fase)
-
-- **Fase 6:** build de producción (`npm run build`), despliegue del contenido estático en S3 + CloudFront, y `VITE_API_URL` apuntando al backend ya desplegado en AWS.
+Despliegue (S3 + CloudFront) fuera del Proyecto 1. El servidor que sirva el
+frontend deberá enviar `Content-Security-Policy: frame-ancestors 'none'`
+(no funciona como `<meta>`).

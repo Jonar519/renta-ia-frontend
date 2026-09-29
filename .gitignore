@@ -5,3 +5,10 @@ dist/
 !.env.example
 *.log
 .DS_Store
+
+# Resultados locales de Lighthouse CI
+.lighthouseci/
+
+# Resultados locales de Playwright (E2E)
+test-results/
+playwright-report/

@@ -6,21 +6,33 @@
   "description": "Interfaz web del Sistema de Gestión Documental Contable con IA",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-bundle.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint . && prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "size": "node scripts/check-bundle.mjs",
+    "perf:measure": "node perf/measure.mjs",
+    "perf:profile": "node perf/profile.mjs",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^17.12.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.9",
     "vite": "^5.4.0",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.0",
+    "web-vitals": "^6.2.2"
   }
 }

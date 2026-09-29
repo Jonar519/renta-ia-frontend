@@ -3,7 +3,7 @@ import prettier from "eslint-config-prettier";
 import globals from "globals";
 
 export default [
-  { ignores: ["dist/", "node_modules/", "coverage/"] },
+  { ignores: ["dist/", "node_modules/", "coverage/", "test-results/", "playwright-report/"] },
   js.configs.recommended,
   {
     languageOptions: { ecmaVersion: 2022, sourceType: "module", globals: globals.browser },
@@ -11,9 +11,17 @@ export default [
       "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" }],
     },
   },
-  { files: ["public/service-worker.js"], languageOptions: { sourceType: "script", globals: globals.serviceworker } },
+  { files: ["src/sw/service-worker.js"], languageOptions: { sourceType: "script", globals: globals.serviceworker } },
   { files: ["src/workers/**/*.js"], languageOptions: { globals: globals.worker } },
-  { files: ["tests/**/*.js", "*.config.js"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
+  {
+    files: ["tests/**/*.js", "e2e/**/*.js", "*.config.js"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  // Scripts de medición (Node + código que se evalúa dentro del navegador).
+  {
+    files: ["perf/**/*.mjs", "scripts/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
   // Desactiva reglas de estilo que chocan con Prettier (debe ir al final).
   prettier,
 ];
