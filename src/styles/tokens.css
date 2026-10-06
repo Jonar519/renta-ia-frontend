@@ -1,10 +1,32 @@
+/*
+ * Tokens de diseño en dos capas (docs/design-tokens-audit.md, docs/dark-mode.md):
+ *
+ *  1. Primitivos (--color-*, tipografía, medidas): la paleta "Midnight
+ *     Executive". No cambian con el tema y los componentes NO los usan para
+ *     colores que dependen del tema.
+ *  2. Semánticos (--bg-*, --text-*, --border-*, --tone-*, …): qué significa
+ *     cada color. Son los que usan los componentes. El modo oscuro solo
+ *     redefine esta capa, y la deriva de los mismos primitivos (color-mix),
+ *     sin una paleta nueva.
+ *
+ * El tema lo decide SOLO el sistema operativo (prefers-color-scheme), con CSS
+ * puro: no hay selector, ni preferencia guardada, ni JavaScript que lo
+ * decida, y cambia en vivo sin recargar. tests/theme.test.js lo impone y
+ * tests/contrast.test.js mide el contraste AA de cada par en ambos temas.
+ */
+
+/* 1. Primitivos */
 :root {
-  /* Color: paleta "Midnight Executive", consistente con el resto del proyecto */
   --color-bg: #f4f6f8;
   --color-surface: #ffffff;
+  --color-white: #ffffff;
+  --color-navy-950: #0f1a2c;
   --color-navy-900: #16233a;
+  --color-navy-800: #24365a;
   --color-navy-700: #1f3b57;
   --color-navy-500: #2e5c8a;
+  --color-slate-200: #c7d2e0;
+  --color-neutral-100: #eef0f3;
   --color-amber-600: #b9770e;
   --color-amber-100: #fcf3e7;
   /* Texto sobre fondos claros: cumplen WCAG AA (≥ 4.5:1). amber-800 sobre
@@ -18,14 +40,23 @@
   --color-red-100: #f5d6d6;
   --color-blue-700: #1d5a8c;
   --color-blue-100: #e4eef7;
+  /* Contenido producido por IA. Tono propio, distinto del ámbar de
+     "advertencia" (hallazgo H2 de la auditoría): azul, verde, rojo y ámbar
+     ya significan info/éxito/error/advertencia. */
+  --color-violet-100: #f1ecf8;
+  --color-violet-600: #7a5bb0;
+  --color-violet-700: #5b3f8c;
   --color-ink-900: #1f2a38;
   --color-ink-500: #5b6472;
   --color-border: #e2e5ea;
 
   /* Tipografía: serif para encabezados (autoridad, tono "documento oficial"),
-     sans para interfaz y datos (legibilidad en tablas densas) */
+     sans para la interfaz y monoespaciada para cifras y datos tabulares
+     (montos, fechas, años, números de documento): dígitos del mismo ancho que
+     se alinean en columnas y no se confunden (0/O, 1/l). */
   --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-sans: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --fs-xs: 0.75rem;
   --fs-sm: 0.875rem;
@@ -37,7 +68,85 @@
 
   --radius-sm: 6px;
   --radius-md: 10px;
+}
+
+/* 2. Semánticos: tema claro */
+:root {
+  /* Controles nativos (scrollbars, autocompletado, selects) siguen el tema. */
+  color-scheme: light dark;
+
+  --bg-app: var(--color-bg);
+  --bg-surface: var(--color-surface);
+  --text: var(--color-ink-900);
+  --text-strong: var(--color-navy-900);
+  --text-muted: var(--color-ink-500);
+  --text-link: var(--color-navy-500);
+  --focus-ring: var(--color-navy-500);
+  /* Separadores decorativos (tablas, paneles, pestañas). */
+  --border-subtle: var(--color-border);
+  /* Límite de un control (inputs): WCAG 1.4.11 exige ≥ 3:1 (hallazgo H1). */
+  --border-control: color-mix(in srgb, var(--color-ink-500) 70%, var(--color-border));
+  --action-bg: var(--color-navy-700);
+  /* Indicador gráfico de selección (pestaña activa): ≥ 3:1. */
+  --accent-indicator: var(--color-navy-700);
+  --action-bg-hover: var(--color-navy-900);
+  --toast-bg: var(--color-navy-900);
+  --sidebar-bg: var(--color-navy-900);
+  --sidebar-border: var(--color-navy-900);
+
+  --tone-neutral-bg: var(--color-neutral-100);
+  --tone-neutral-fg: var(--color-ink-500);
+  --tone-info-bg: var(--color-blue-100);
+  --tone-info-fg: var(--color-blue-700);
+  --tone-success-bg: var(--color-green-100);
+  --tone-success-fg: var(--color-green-800);
+  --tone-warning-bg: var(--color-amber-100);
+  --tone-warning-fg: var(--color-amber-800);
+  --tone-error-bg: var(--color-red-100);
+  --tone-error-fg: var(--color-red-700);
+  --tone-ai-bg: var(--color-violet-100);
+  --tone-ai-fg: var(--color-violet-700);
+  --ai-accent: var(--color-violet-600);
 
   --shadow-sm: 0 1px 2px rgba(22, 35, 58, 0.06);
   --shadow-lg: 0 24px 48px rgba(10, 16, 28, 0.35);
+}
+
+/* 2. Semánticos: tema oscuro, derivado de los mismos primitivos */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-app: var(--color-navy-950);
+    --bg-surface: var(--color-navy-900);
+    --text: var(--color-bg);
+    --text-strong: var(--color-white);
+    --text-muted: var(--color-slate-200);
+    --text-link: color-mix(in srgb, var(--color-white) 55%, var(--color-navy-500));
+    --focus-ring: color-mix(in srgb, var(--color-white) 55%, var(--color-navy-500));
+    --border-subtle: var(--color-navy-800);
+    --border-control: color-mix(in srgb, var(--color-slate-200) 50%, var(--color-navy-900));
+    --action-bg: var(--color-navy-500);
+    --accent-indicator: color-mix(in srgb, var(--color-white) 55%, var(--color-navy-500));
+    --action-bg-hover: var(--color-navy-700);
+    --toast-bg: var(--color-navy-700);
+    --sidebar-bg: var(--color-navy-950);
+    --sidebar-border: var(--color-navy-800);
+
+    /* Badges: fondo = tono fuerte al 50 % sobre la superficie; texto = tono claro. */
+    --tone-neutral-bg: var(--color-navy-800);
+    --tone-neutral-fg: var(--color-slate-200);
+    --tone-info-bg: color-mix(in srgb, var(--color-blue-700) 50%, var(--color-navy-900));
+    --tone-info-fg: var(--color-blue-100);
+    --tone-success-bg: color-mix(in srgb, var(--color-green-800) 50%, var(--color-navy-900));
+    --tone-success-fg: var(--color-green-100);
+    --tone-warning-bg: color-mix(in srgb, var(--color-amber-800) 50%, var(--color-navy-900));
+    --tone-warning-fg: var(--color-amber-100);
+    --tone-error-bg: color-mix(in srgb, var(--color-red-700) 50%, var(--color-navy-900));
+    --tone-error-fg: var(--color-red-100);
+    --tone-ai-bg: color-mix(in srgb, var(--color-violet-700) 50%, var(--color-navy-900));
+    --tone-ai-fg: var(--color-violet-100);
+    --ai-accent: color-mix(in srgb, var(--color-white) 50%, var(--color-violet-600));
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.55);
+  }
 }

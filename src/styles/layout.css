@@ -12,8 +12,9 @@
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--color-navy-900);
-  color: #ffffff;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  color: var(--color-white);
   display: flex;
   flex-direction: column;
   padding: 24px 20px;
@@ -38,7 +39,7 @@
 }
 
 .sidebar__link {
-  color: #c7d2e0;
+  color: var(--color-slate-200);
   text-decoration: none;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
@@ -46,18 +47,18 @@
 }
 .sidebar__link:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  color: var(--color-white);
 }
 .sidebar__link.is-active {
   background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: 500;
 }
 
 .sidebar__logout {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #c7d2e0;
+  color: var(--color-slate-200);
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -65,7 +66,7 @@
 }
 .sidebar__logout:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  color: var(--color-white);
 }
 
 .main {
@@ -88,7 +89,7 @@
 }
 
 .page-subtitle {
-  color: var(--color-ink-500);
+  color: var(--text-muted);
   margin-top: 6px;
   font-size: var(--fs-sm);
   /* Reserva la línea aunque el texto llegue después (evita desplazar las pestañas). */
