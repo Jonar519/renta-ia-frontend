@@ -1,5 +1,5 @@
 import { usersApi } from "../api/users.api.js";
-import { ROLE_LABELS } from "../auth/routeAccess.js";
+import { ROLE_LABELS } from "../auth/roles.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { bindRetry, errorStateHtml, skeletonBlockHtml } from "../components/states.js";
 import { escapeHtml } from "../utils/escapeHtml.js";

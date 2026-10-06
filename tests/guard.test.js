@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { decideRoute, ROLE_LABELS } from "../src/auth/routeAccess.js";
+import { decideRoute } from "../src/auth/routeAccess.js";
+import { ROLE_LABELS } from "../src/auth/roles.js";
+import { noticeText } from "../src/components/routeNotice.js";
 
 /**
  * Guard de rutas por rol: un usuario sin permiso que escribe la URL rebota a
@@ -20,10 +22,17 @@ describe("decideRoute", () => {
   it("rebota a Clientes con un aviso que nombra la página y el rol", () => {
     for (const role of ["assistant", "accountant", "client"]) {
       const decision = decideRoute(ADMIN_ONLY, { hasSession: true, role });
-      expect(decision.redirect).toBe("/");
-      expect(decision.notice).toContain('No tienes permiso para ver "Rendimiento".');
-      expect(decision.notice).toContain(ROLE_LABELS[role]);
+      expect(decision).toEqual({ redirect: "/", notice: { reason: "forbidden", label: "Rendimiento", role } });
+      const text = noticeText(decision.notice);
+      expect(text).toContain('No tienes permiso para ver "Rendimiento".');
+      expect(text).toContain(ROLE_LABELS[role]);
     }
+  });
+
+  it("el chunk de entrada no lleva los textos: la decisión es un motivo, no una frase", () => {
+    const decision = decideRoute(ADMIN_ONLY, { hasSession: true, role: "assistant" });
+    expect(typeof decision.notice).toBe("object");
+    expect(JSON.stringify(decision)).not.toMatch(/permiso|Asistente/);
   });
 
   it("sin rol conocido (pista manipulada o incompleta) tampoco entra", () => {
@@ -32,12 +41,10 @@ describe("decideRoute", () => {
   });
 
   it("sin sesión → login; ruta inexistente → Clientes (con sesión) o login (sin sesión)", () => {
-    expect(decideRoute(ADMIN_ONLY, { hasSession: false })).toEqual({
-      redirect: "/login",
-      notice: "Inicia sesión para continuar.",
-    });
-    expect(decideRoute(null, { hasSession: true }).redirect).toBe("/");
-    expect(decideRoute(null, { hasSession: true }).notice).toContain("no existe");
+    expect(decideRoute(ADMIN_ONLY, { hasSession: false })).toEqual({ redirect: "/login", notice: { reason: "login" } });
+    expect(noticeText({ reason: "login" })).toBe("Inicia sesión para continuar.");
+    expect(decideRoute(null, { hasSession: true })).toEqual({ redirect: "/", notice: { reason: "missing" } });
+    expect(noticeText({ reason: "missing" })).toContain("no existe");
     expect(decideRoute(null, { hasSession: false })).toEqual({ redirect: "/login" });
   });
 });

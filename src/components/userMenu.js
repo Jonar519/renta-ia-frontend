@@ -1,6 +1,6 @@
 import { getState } from "../state/store.js";
 import { logout } from "../auth/session.js";
-import { ROLE_LABELS } from "../auth/routeAccess.js";
+import { ROLE_LABELS } from "../auth/roles.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { showToast } from "./toast.js";
 

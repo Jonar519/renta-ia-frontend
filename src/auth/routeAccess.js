@@ -2,36 +2,23 @@
  * Quién puede entrar a cada ruta (guard del router, main.js). Es solo la
  * experiencia de usuario: la autorización real la hace la API (403/404),
  * aunque alguien manipule el rol guardado en el navegador.
+ *
+ * Devuelve la DECISIÓN (adónde rebotar y por qué), no el texto: el aviso se
+ * redacta en components/routeNotice.js, que se descarga solo cuando hay un
+ * rebote. Así el chunk de entrada (presupuesto de 4 KB) no carga los textos.
  */
-
-/** Nombre visible de cada rol (sin suponer género). */
-export const ROLE_LABELS = {
-  admin: "Administrador/a",
-  accountant: "Contador/a",
-  assistant: "Asistente",
-  client: "Contribuyente",
-};
-
 const HOME = "/";
 
 /**
  * @param {{ meta: { auth?: boolean, roles?: string[], label?: string } } | null} route  null = la ruta no existe
  * @param {{ hasSession: boolean, role?: string }} session
- * @returns {{ redirect: string, notice?: string } | null}  null = puede entrar
+ * @returns {{ redirect: string, notice?: { reason: "missing" | "login" | "forbidden", label?: string, role?: string } } | null}
+ *   null = puede entrar
  */
 export function decideRoute(route, { hasSession, role }) {
-  if (!route) {
-    return hasSession
-      ? { redirect: HOME, notice: "La página que buscabas no existe. Te llevamos a Clientes." }
-      : { redirect: "/login" };
-  }
-  const { auth, roles, label = "esa página" } = route.meta ?? {};
-  if (auth && !hasSession) {
-    return { redirect: "/login", notice: "Inicia sesión para continuar." };
-  }
-  if (roles && !roles.includes(role)) {
-    const who = ROLE_LABELS[role] ? ` Tu rol (${ROLE_LABELS[role]}) no tiene acceso.` : "";
-    return { redirect: HOME, notice: `No tienes permiso para ver "${label}".${who} Te llevamos a Clientes.` };
-  }
+  if (!route) return hasSession ? { redirect: HOME, notice: { reason: "missing" } } : { redirect: "/login" };
+  const { auth, roles, label } = route.meta ?? {};
+  if (auth && !hasSession) return { redirect: "/login", notice: { reason: "login" } };
+  if (roles && !roles.includes(role)) return { redirect: HOME, notice: { reason: "forbidden", label, role } };
   return null;
 }
