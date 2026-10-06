@@ -126,6 +126,11 @@ jobs:
           node-version: 24.13.1
       - name: Migraciones
         run: bash _database/scripts/migrate.sh
+      # Usuarios del seed con roles distintos (admin, contador, asistente): los
+      # usa e2e/guard.spec.js para probar el rebote por rol. Solo datos de
+      # desarrollo/pruebas (decisión D1).
+      - name: Datos de prueba (seed)
+        run: bash _database/scripts/seed.sh
       - name: API y worker (IA simulada)
         working-directory: _backend
         run: |
