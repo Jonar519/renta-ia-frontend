@@ -174,18 +174,21 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 
 `scripts/check-bundle.mjs` se ejecuta con `npm run build` (y por lo tanto en CI) y **falla** si se excede un límite. Tamaños gzip nivel 9, medidos al fijar el presupuesto:
 
-| Recurso                               |   Medido |     Límite |
-| ------------------------------------- | -------: | ---------: |
-| JS de entrada                         |  2,69 KB |       4 KB |
-| Chunk más grande (detalle de cliente) |  7,24 KB |      10 KB |
-| JS total (todos los chunks)           | 30,08 KB |      34 KB |
-| CSS total                             |  4,19 KB |       5 KB |
-| Fuentes (woff2)                       | 88,82 KB |      95 KB |
-| Fuentes de Google en `index.html`     |  ninguna | prohibidas |
+| Recurso                                  |   Medido |     Límite |
+| ---------------------------------------- | -------: | ---------: |
+| JS de entrada                            |  3,93 KB |       4 KB |
+| Cada chunk (salvo excepciones)           |  4,24 KB |       6 KB |
+| Chunk del detalle de cliente (excepción) |  8,32 KB |       9 KB |
+| JS total (todos los chunks)              | 38,69 KB |      42 KB |
+| CSS total                                |  4,19 KB |       5 KB |
+| Fuentes (woff2)                          | 88,82 KB |      95 KB |
+| Fuentes de Google en `index.html`        |  ninguna | prohibidas |
 
 Fase 5 (B1): el presupuesto de fuentes sube de 75 a 95 KB por JetBrains Mono 400 (20,67 KB) para las cifras; medición y motivo en `docs/dark-mode.md` §4.
 
-Fase 5 (B2): JS total 30 → 34 KB (medido 30,08 KB) y CSS total 4 → 5 KB (medido 4,19 KB) por los estados explícitos de todas las vistas; detalle en `docs/ui-states.md`. Las demás filas (JS de entrada y chunk más grande) corresponden a la medición original.
+Fase 5 (B2): JS total 30 → 34 KB (medido 30,08 KB) y CSS total 4 → 5 KB (medido 4,19 KB) por los estados explícitos de todas las vistas; detalle en `docs/ui-states.md`.
+
+Fase 5 (B6, aprobado): JS total 34 → 42 KB (medido 38,69 KB) por las pantallas de invitación (`adminUsers` 3,47 KB y `completeAccount` 2,17 KB), que solo descarga quien entra a esas rutas. Con dos condiciones: el JS de entrada se mantiene en 4 KB (medido 3,93 KB; los textos de los avisos y los nombres de rol salieron de la entrada) y un **tope de 6 KB por chunk**, con una única excepción documentada: el detalle de cliente (9 KB; medido 8,32 KB). El "chunk más grande ≤ 10 KB" anterior queda reemplazado por esas dos reglas.
 
 ## 8. Métricas de usuarios reales (RUM)
 

@@ -132,6 +132,17 @@ export default defineConfig(({ mode }) => ({
     // Las fuentes nunca se incrustan como base64 dentro del CSS (bloquearían
     // su descarga y no se podrían precargar ni cachear aparte).
     assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined),
+    rollupOptions: {
+      output: {
+        // Las vistas que viven en un "index.js" de su carpeta (clientDetail/)
+        // toman el nombre de la carpeta: si no, su chunk se llamaría "index-…",
+        // igual que el de entrada, y el presupuesto por chunk no podría nombrarlo.
+        chunkFileNames: (chunk) => {
+          const folder = chunk.facadeModuleId?.match(/[\\/]views[\\/](\w+)[\\/]index\.js$/)?.[1];
+          return `assets/${folder ?? "[name]"}-[hash].js`;
+        },
+      },
+    },
   },
   test: {
     environment: "jsdom",
