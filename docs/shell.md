@@ -96,3 +96,45 @@ margen es chico: la ruta de administración de B6 puede obligar a revisarlo.
 
 El job E2E del CI ahora carga el seed (`renta-ia-database/scripts/seed.sh`): las pruebas
 usan sus usuarios admin, contador y asistente (decisión D1: datos solo de desarrollo y pruebas).
+
+## Alta de cuentas por invitación (bloque B6)
+
+No hay registro público: las cuentas se crean solo por invitación de un admin
+(backend: `src/modules/invitations`, ADR 0009).
+
+### Usuarios (`#/admin/users`, solo admin)
+
+- **Invitar**: nombre, correo y rol, **sin contraseña**. Según el rol, se elige:
+  - asistente: el contador al que ayudará (`GET /api/admin/accountants`, solo contadores activos);
+  - contribuyente: el expediente que podrá consultar, buscándolo por nombre o documento
+    (`GET /api/admin/portal-clients`, solo expedientes sin usuario de portal, 20 como máximo).
+- **Invitaciones pendientes**: estado (Pendiente / Vencida), vencimiento (fecha y "vence dentro de 3 días"),
+  y el vínculo (a qué contador asiste, de qué expediente es). Las cuentas ya activadas no se listan.
+- **Reenviar**: envía un enlace nuevo y el anterior deja de servir.
+- **Cancelar**: pide confirmación en un `<dialog>` nativo (foco atrapado, Escape cierra y el foco
+  vuelve al botón). Elimina la cuenta pendiente y libera el correo.
+- **El enlace nunca aparece aquí**: la API no lo devuelve. `e2e/invitations.spec.js` captura
+  todas las respuestas que recibe el navegador del admin y verifica que el token no está en
+  ninguna, ni en la página.
+
+### Completa tu cuenta (`#/invitacion/<token>`, pública)
+
+- Muestra a quién corresponde el enlace (nombre, rol, correo de solo lectura) y pide la
+  contraseña dos veces, con la política explicada.
+- **El token se borra de la barra de direcciones apenas se lee** (`history.replaceState` →
+  `#/invitacion`): no queda en el historial ni en una captura de pantalla. Si se recarga, la
+  pantalla pide abrir de nuevo el enlace del correo.
+- El token viaja en el **cuerpo** de las peticiones (`/api/auth/invitations/lookup` y `/accept`),
+  nunca en la URL.
+- Enlace inválido, vencido, reemplazado o ya usado: un solo mensaje claro, sin formulario.
+- Al activar: sesión iniciada, aviso "Tu cuenta está activa" y Clientes.
+- **Mostrar contraseña** (`components/passwordField.js`, lo reutilizarán B7 y el login de B10):
+  botón de alternancia con nombre fijo ("Mostrar contraseña") y `aria-pressed`. Cambiar a la
+  vez el texto y `aria-pressed` daría un anuncio contradictorio, por eso se ajustó lo dicho en
+  el plan de B10. Al enviar el formulario la contraseña vuelve a ocultarse.
+
+### Presupuesto
+
+Los textos de los avisos de rebote y los nombres de los roles salieron del chunk de entrada
+(`auth/roles.js`, `routeNotice.js`): el guard solo necesita la decisión. Así la ruta de
+administración entra sin subir el presupuesto de entrada: **3,93 KB de 4 KB**.
