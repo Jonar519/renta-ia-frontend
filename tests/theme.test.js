@@ -24,7 +24,8 @@ const COMPONENT_CSS = ["src/styles/base.css", "src/styles/layout.css", "src/styl
 
 // Primitivos que los componentes pueden usar directamente porque NO dependen
 // del tema: texto blanco sobre rellenos que son oscuros en ambos temas, el
-// degradado del login, el skip-link, el sidebar y los toasts de éxito/error.
+// degradado del login, el skip-link, el sidebar y los toasts de éxito,
+// advertencia y error.
 const THEME_INVARIANT_PRIMITIVES = new Set([
   "--color-white",
   "--color-navy-800",
@@ -33,6 +34,7 @@ const THEME_INVARIANT_PRIMITIVES = new Set([
   "--color-slate-200",
   "--color-green-700",
   "--color-red-700",
+  "--color-amber-800",
 ]);
 
 describe("regla de tema", () => {

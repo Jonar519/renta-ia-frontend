@@ -1,5 +1,6 @@
 import { getState } from "../state/store.js";
 import { logout } from "../auth/session.js";
+import { showToast } from "./toast.js";
 
 export function renderSidebar(active) {
   const link = (id, href, label) =>
@@ -21,8 +22,9 @@ export function bindSidebarEvents(root) {
   const logoutBtn = root.querySelector("#btn-logout");
   if (!logoutBtn) return;
 
-  logoutBtn.addEventListener("click", () => {
+  logoutBtn.addEventListener("click", async () => {
     logoutBtn.disabled = true;
-    logout();
+    await logout();
+    showToast("Cerraste sesión.", "success");
   });
 }

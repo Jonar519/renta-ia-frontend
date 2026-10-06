@@ -352,7 +352,13 @@
 }
 
 /* Notificaciones flotantes */
+/*
+ * Avisos flotantes sin nada clicable (toasts, banner sin conexión):
+ * pointer-events: none → nunca bloquean los clics de lo que tapan.
+ * El aviso de versión nueva (.update-banner) sí tiene botones y no lo lleva.
+ */
 #toast-root {
+  pointer-events: none;
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -384,6 +390,9 @@
 }
 .toast--error {
   background: var(--color-red-700);
+}
+.toast--warning {
+  background: var(--color-amber-800);
 }
 
 @media (max-width: 640px) {
@@ -528,9 +537,11 @@
   border-bottom: 1px solid var(--border-subtle);
   font-size: var(--fs-sm);
   text-align: center;
+  pointer-events: none;
 }
-.is-offline [data-requires-network] button[type="submit"],
-.is-offline button[data-requires-network] {
+/* Controles no disponibles (p. ej. sin conexión, connectivityBanner.js): la
+   atenuación solo se aplica junto con aria-disabled, que los declara inactivos. */
+[aria-disabled="true"] {
   opacity: 0.55;
   cursor: not-allowed;
 }

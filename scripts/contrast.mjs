@@ -148,6 +148,9 @@ export const PAIRS = [
   ["Toast informativo", v("color-white"), v("toast-bg"), TEXT],
   ["Toast de éxito", v("color-white"), v("color-green-700"), TEXT],
   ["Toast de error", v("color-white"), v("color-red-700"), TEXT],
+  ["Toast de advertencia (conexión perdida)", v("color-white"), v("color-amber-800"), TEXT],
+  ["Estado de error: título / superficie", v("tone-error-fg"), v("bg-surface"), TEXT],
+  ["Estado vacío: orientación / superficie", v("text-muted"), v("bg-surface"), TEXT],
   ["Sidebar: enlace / fondo", v("color-slate-200"), v("sidebar-bg"), TEXT],
   [
     "Sidebar: enlace activo / fondo + 12 % blanco",
