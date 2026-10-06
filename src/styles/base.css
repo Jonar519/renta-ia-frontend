@@ -87,12 +87,16 @@ ul {
   outline-offset: 2px;
 }
 
+/* Movimiento reducido: sin animaciones ni transiciones en ninguna parte.
+   iteration-count 1: una animación infinita de 0.001ms seguiría en bucle
+   (parpadeo y CPU); así queda en su estado final, estática. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
-    scroll-behavior: auto !important;
