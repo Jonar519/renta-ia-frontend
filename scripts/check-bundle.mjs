@@ -18,8 +18,11 @@ const BUDGETS = {
   entryJsGzip: 4 * KB, // medido: 2,69 KB
   // Ningún chunk de vista debería superar esto.
   largestChunkGzip: 10 * KB, // medido: 7,24 KB (detalle de cliente)
-  totalJsGzip: 30 * KB, // medido: 22,88 KB sumando todos los chunks
-  totalCssGzip: 4 * KB, // medido: 2,99 KB
+  // Fase 5 (B2): +estados explícitos (skeleton, error con Reintentar, vacío,
+  // toasts de conectividad). Medido: JS 30,08 KB (antes 28,19) y CSS 4,19 KB
+  // (antes 3,80). Originales: 30 KB / 4 KB con 22,88 / 2,99 KB medidos.
+  totalJsGzip: 34 * KB,
+  totalCssGzip: 5 * KB,
   // Fase 5: +JetBrains Mono 400 latín (20,67 KB) para las cifras. Medido:
   // 88,82 KB; antes 75 KB con 68,15 KB medidos (woff2 ya viene comprimido).
   fontsBytes: 95 * KB,

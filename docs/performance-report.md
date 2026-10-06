@@ -178,12 +178,14 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 | ------------------------------------- | -------: | ---------: |
 | JS de entrada                         |  2,69 KB |       4 KB |
 | Chunk más grande (detalle de cliente) |  7,24 KB |      10 KB |
-| JS total (todos los chunks)           | 22,88 KB |      30 KB |
-| CSS total                             |  2,99 KB |       4 KB |
+| JS total (todos los chunks)           | 30,08 KB |      34 KB |
+| CSS total                             |  4,19 KB |       5 KB |
 | Fuentes (woff2)                       | 88,82 KB |      95 KB |
 | Fuentes de Google en `index.html`     |  ninguna | prohibidas |
 
-Fase 5 (B1): el presupuesto de fuentes sube de 75 a 95 KB por JetBrains Mono 400 (20,67 KB) para las cifras; medición y motivo en `docs/dark-mode.md` §4. El resto de la tabla corresponde a la medición original.
+Fase 5 (B1): el presupuesto de fuentes sube de 75 a 95 KB por JetBrains Mono 400 (20,67 KB) para las cifras; medición y motivo en `docs/dark-mode.md` §4.
+
+Fase 5 (B2): JS total 30 → 34 KB (medido 30,08 KB) y CSS total 4 → 5 KB (medido 4,19 KB) por los estados explícitos de todas las vistas; detalle en `docs/ui-states.md`. Las demás filas (JS de entrada y chunk más grande) corresponden a la medición original.
 
 ## 8. Métricas de usuarios reales (RUM)
 
