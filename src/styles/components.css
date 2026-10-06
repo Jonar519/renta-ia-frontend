@@ -829,3 +829,121 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* Campos de formularios de acceso (Completa tu cuenta, B7, B10) */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.auth-form input[readonly] {
+  background: var(--bg-app);
+  color: var(--text-muted);
+}
+
+/* Contraseña con "Mostrar contraseña" (components/passwordField.js) */
+.password-field {
+  position: relative;
+  display: flex;
+}
+.password-field input {
+  flex: 1;
+  padding-right: 92px;
+}
+.password-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-link);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.password-field__toggle[aria-pressed="true"] {
+  background: var(--tone-info-bg);
+  color: var(--tone-info-fg);
+  border-color: var(--tone-info-fg);
+}
+
+/* Usuarios (admin) */
+.form-grid__wide {
+  grid-column: 1 / -1;
+}
+.form-grid__wide:empty {
+  display: none;
+}
+#role-extra {
+  display: grid;
+  gap: 12px;
+}
+#role-extra label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+#role-extra select,
+#role-extra input,
+.form-grid select {
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: var(--fs-base);
+  color: var(--text);
+  background: var(--bg-surface);
+}
+.portal-search {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.portal-search label {
+  flex: 1;
+}
+.table__actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.table__actions .btn + .btn {
+  margin-left: 6px;
+}
+.btn--danger {
+  color: var(--tone-error-fg);
+}
+.btn--danger-fill {
+  background: var(--color-red-700);
+}
+.btn--danger-fill:hover {
+  background: var(--color-red-700);
+  filter: brightness(0.9);
+}
+
+/* Diálogo de confirmación (<dialog> nativo: foco atrapado, Escape cierra) */
+.dialog {
+  max-width: 440px;
+  padding: 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+}
+.dialog::backdrop {
+  background: rgba(10, 16, 28, 0.55);
+}
+.dialog h2 {
+  font-size: var(--fs-md);
+  margin-bottom: 10px;
+}
+.dialog p {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}

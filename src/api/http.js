@@ -27,18 +27,20 @@ export const NETWORK_ERROR_MESSAGE =
   "No se pudo conectar con el servidor. Revisa tu conexión a internet o intenta de nuevo en unos minutos.";
 export const TIMEOUT_ERROR_MESSAGE = "El servidor tardó demasiado en responder. Intenta de nuevo.";
 export const SESSION_EXPIRED_MESSAGE = "Tu sesión expiró. Inicia sesión de nuevo.";
-// Rutas de login/registro: reciben la cookie de refresh (credentials) y no
+// Rutas de login/invitación: reciben la cookie de refresh (credentials) y no
 // disparan el refresh automático ante un 401 (credenciales incorrectas).
 const isAuthPath = (path) => path.startsWith("/api/auth/");
 export const OFFLINE_WRITE_ERROR = "Sin conexión: esta acción necesita internet. No se guardó ningún cambio.";
 
 /** Error de red/HTTP con su tipo: "network" | "timeout" | "http" | "offline". */
 export class HttpError extends Error {
-  constructor(message, { kind, status, cause } = {}) {
+  constructor(message, { kind, status, cause, details } = {}) {
     super(message, { cause });
     this.name = "HttpError";
     this.kind = kind;
     this.status = status;
+    /** En un 400 de validación: [{ field, message }] tal como los manda la API. */
+    this.details = details;
   }
 }
 
@@ -186,7 +188,11 @@ async function request(
     }
 
     if (!response.ok) {
-      throw new HttpError(buildErrorMessage(data, response.status), { kind: "http", status: response.status });
+      throw new HttpError(buildErrorMessage(data, response.status), {
+        kind: "http",
+        status: response.status,
+        details: Array.isArray(data?.details) ? data.details : undefined,
+      });
     }
 
     if (isGet && isOfflineCacheable(path) && user?.id) {

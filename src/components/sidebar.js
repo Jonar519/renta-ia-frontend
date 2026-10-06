@@ -11,6 +11,7 @@ export function renderSidebar(active) {
       <div class="sidebar__brand">Renta IA</div>
       <nav class="sidebar__nav" aria-label="Principal">
         ${link("dashboard", "#/", "Clientes")}
+        ${isAdmin ? link("users", "#/admin/users", "Usuarios") : ""}
         ${isAdmin ? link("performance", "#/performance", "Rendimiento") : ""}
       </nav>
       ${userMenuHtml()}

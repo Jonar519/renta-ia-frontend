@@ -62,6 +62,26 @@ registerRoute(
   { auth: true, roles: ["admin"], label: "Rendimiento" }
 );
 registerRoute(
+  "/admin/users",
+  lazyView(
+    () => import("./views/adminUsers.view.js"),
+    (m) => m.renderAdminUsers(app)
+  ),
+  { auth: true, roles: ["admin"], label: "Usuarios" }
+);
+// "Completa tu cuenta" (pública): el enlace del correo trae el token; la
+// vista lo quita de la barra de direcciones (queda en "#/invitacion").
+for (const pattern of ["/invitacion/:token", "/invitacion"]) {
+  registerRoute(
+    pattern,
+    lazyView(
+      () => import("./views/completeAccount.view.js"),
+      (m, params) => m.renderCompleteAccount(app, params.token)
+    ),
+    { auth: false }
+  );
+}
+registerRoute(
   "/profile",
   lazyView(
     () => import("./views/profile.view.js"),
