@@ -33,28 +33,44 @@ export function createChatSection(root, clientId) {
   const chatForm = root.querySelector("#chat-form");
   const chatLog = root.querySelector("#chat-log");
 
+  const input = chatForm.elements.question;
+
+  /** Pide la respuesta y la pinta en la burbuja dada (nueva o la de un reintento). */
+  async function ask(question, pendingEl) {
+    const bubble = pendingEl.querySelector(".chat-bubble");
+    pendingEl.className = "chat-message chat-message--assistant chat-message--pending";
+    bubble.classList.add("ai-processing");
+    bubble.textContent = "Pensando…";
+    input.disabled = true;
+    try {
+      const result = await aiApi.chat(clientId, question);
+      bubble.textContent = result.answer;
+      pendingEl.classList.remove("chat-message--pending");
+    } catch (err) {
+      bubble.textContent = `No se pudo responder: ${err.message}`;
+      pendingEl.classList.replace("chat-message--pending", "chat-message--error");
+      // Reintentar la MISMA pregunta en la misma burbuja, sin recargar.
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "btn btn--ghost btn--small chat-retry";
+      retry.dataset.requiresNetwork = "";
+      retry.textContent = "Reintentar";
+      retry.addEventListener("click", () => ask(question, pendingEl), { once: true });
+      bubble.append(" ", retry);
+    } finally {
+      bubble.classList.remove("ai-processing");
+      input.disabled = false;
+      input.focus();
+    }
+  }
+
   chatForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const input = chatForm.question;
     const question = input.value.trim();
     if (!question) return;
 
     appendChatMessage(chatLog, "user", question);
     input.value = "";
-    input.disabled = true;
-    const pendingEl = appendChatMessage(chatLog, "assistant", "Pensando...", true);
-
-    try {
-      const result = await aiApi.chat(clientId, question);
-      pendingEl.querySelector(".chat-bubble").textContent = result.answer;
-      pendingEl.classList.remove("chat-message--pending");
-    } catch (err) {
-      pendingEl.querySelector(".chat-bubble").textContent = `No se pudo responder: ${err.message}`;
-      pendingEl.classList.remove("chat-message--pending");
-      pendingEl.classList.add("chat-message--error");
-    } finally {
-      input.disabled = false;
-      input.focus();
-    }
+    await ask(question, appendChatMessage(chatLog, "assistant", "Pensando…", true));
   });
 }

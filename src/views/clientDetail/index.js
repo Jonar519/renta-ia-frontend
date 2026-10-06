@@ -1,5 +1,5 @@
 import { clientsApi } from "../../api/clients.api.js";
-import { showErrorToast } from "../../components/toast.js";
+import { bindRetry, errorStateHtml } from "../../components/states.js";
 import { renderSidebar, bindSidebarEvents } from "../../components/sidebar.js";
 import { bindTabs } from "../../components/tabs.js";
 import { registerCleanup } from "../../router.js";
@@ -32,8 +32,8 @@ export async function renderClientDetail(root, clientId) {
         <a href="#/" class="link link--back">Volver a clientes</a>
         <header class="main__header">
           <div>
-            <h1 class="page-title" id="client-name">Cargando cliente...</h1>
-            <p class="page-subtitle" id="client-meta"></p>
+            <h1 class="page-title" id="client-name"><span class="visually-hidden">Cargando cliente…</span><span class="skeleton skeleton--title" aria-hidden="true"></span></h1>
+            <div class="page-subtitle" id="client-meta"><span class="skeleton skeleton--w2" aria-hidden="true"></span></div>
           </div>
           <p class="live-status" id="live-status" role="status" aria-live="polite"></p>
         </header>
@@ -124,6 +124,9 @@ export async function renderClientDetail(root, clientId) {
     viewAbort.abort();
   });
 
+  const clientMeta = root.querySelector("#client-meta");
+  bindRetry(clientMeta, () => loadClient());
+
   async function loadClient() {
     try {
       const client = await clientsApi.getById(clientId);
@@ -133,10 +136,11 @@ export async function renderClientDetail(root, clientId) {
       const documentNumber = document.createElement("span");
       documentNumber.className = "num";
       documentNumber.textContent = client.documentNumber;
-      root.querySelector("#client-meta").replaceChildren(documentNumber, client.email ? ` · ${client.email}` : "");
+      clientMeta.replaceChildren(documentNumber, client.email ? ` · ${client.email}` : "");
     } catch (err) {
+      if (err.name === "AbortError") return;
       root.querySelector("#client-name").textContent = "Cliente no disponible";
-      showErrorToast(err);
+      clientMeta.innerHTML = errorStateHtml(err.message, { title: "No se pudieron cargar los datos del cliente." });
     }
   }
 

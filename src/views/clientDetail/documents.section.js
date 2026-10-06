@@ -3,6 +3,7 @@ import { can } from "../../auth/permissions.js";
 import { documentsApi } from "../../api/documents.api.js";
 import { showErrorToast, showToast } from "../../components/toast.js";
 import { createPagedList } from "../../components/pagedList.js";
+import { bindRetry, emptyStateHtml, errorStateHtml, inRow, skeletonRowsHtml } from "../../components/states.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
 import { appendInBatches } from "../../utils/scheduling.js";
 import { aggregateConcepts } from "../../utils/aggregateConcepts.js";
@@ -16,6 +17,9 @@ export const WORKER_AGGREGATION_THRESHOLD = 500;
 const CONCEPT_ROWS_INITIAL = 100;
 const CONCEPT_ROWS_STEP = 200;
 
+const conceptsLoadingHtml = skeletonRowsHtml(4, { label: "Cargando conceptos tributarios…" });
+const documentsLoadingHtml = skeletonRowsHtml(5, { rows: 3, label: "Cargando documentos…" });
+
 export function documentsPanelHtml() {
   // El portal del contribuyente (rol client) es de solo lectura: sin subida.
   const uploadPanel = can("document.write") ? uploadPanelHtml() : "";
@@ -28,7 +32,7 @@ export function documentsPanelHtml() {
       <table class="table" id="concepts-table">
         <caption class="visually-hidden">Conceptos tributarios extraídos por la IA de los documentos del cliente</caption>
         <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col" class="num--end">Monto</th><th scope="col">Año</th></tr></thead>
-        <tbody><tr><td colspan="4" class="table__empty">Cargando...</td></tr></tbody>
+        <tbody>${conceptsLoadingHtml}</tbody>
       </table>
       <div class="load-more">
         <button type="button" class="btn btn--ghost" id="concepts-more" aria-controls="concepts-table" hidden>Mostrar más conceptos</button>
@@ -43,7 +47,7 @@ export function documentsPanelHtml() {
           <th scope="col">Archivo</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Subido</th>
           <th scope="col"><span class="visually-hidden">Acciones</span></th>
         </tr></thead>
-        <tbody id="documents-tbody"><tr><td colspan="5" class="table__empty">Cargando...</td></tr></tbody>
+        <tbody id="documents-tbody">${documentsLoadingHtml}</tbody>
       </table>
       <div class="load-more">
         <button type="button" class="btn btn--ghost" id="documents-more" aria-controls="documents-tbody" hidden>Cargar más documentos</button>
@@ -85,7 +89,7 @@ function documentRowHtml(d) {
       <td class="table__primary">${escapeHtml(d.originalName)}</td>
       <td>${DOC_TYPE_LABELS[d.docType] || escapeHtml(d.docType)}</td>
       <td>
-        <span class="badge badge--${status.tone}">${escapeHtml(status.text)}</span>
+        <span class="badge badge--${status.tone}${d.status === "processing" ? " ai-processing" : ""}">${escapeHtml(status.text)}</span>
         ${status.detail ? `<p class="table__note">${escapeHtml(status.detail)}</p>` : ""}
       </td>
       <td class="num">${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
@@ -126,7 +130,8 @@ function totalsHtml(rows) {
  */
 export function createDocumentsSection(root, clientId, { signal, onProcessed = () => {} }) {
   const docsTbody = root.querySelector("#documents-tbody");
-  const conceptsTbody = root.querySelector("#concepts-table tbody");
+  const conceptsTable = root.querySelector("#concepts-table");
+  const conceptsTbody = conceptsTable.querySelector("tbody");
   const conceptsTotals = root.querySelector("#concepts-totals");
   const conceptsMore = root.querySelector("#concepts-more");
 
@@ -147,8 +152,17 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
     status: root.querySelector("#documents-status"),
     fetchPage: (cursor) => documentsApi.listByClient(clientId, { cursor }),
     renderItem: documentRowHtml,
-    emptyHtml: `<tr><td colspan="5" class="table__empty">Todavía no se han subido documentos.</td></tr>`,
-    errorHtml: (message) => `<tr><td colspan="5" class="table__empty table__empty--error">${message}</td></tr>`,
+    loadingHtml: documentsLoadingHtml,
+    emptyHtml: inRow(
+      5,
+      can("document.write")
+        ? emptyStateHtml(
+            "Todavía no se han subido documentos.",
+            "Sube un certificado, extracto o factura arriba: la IA lo analizará y extraerá las cifras."
+          )
+        : emptyStateHtml("Todavía no hay documentos en tu expediente.", "Tu contador los subirá cuando los reciba.")
+    ),
+    errorHtml: (message) => inRow(5, errorStateHtml(message, { title: "No se pudieron cargar los documentos." })),
     itemLabel: "documentos",
   });
 
@@ -169,6 +183,8 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
     conceptsAbort?.abort(); // una recarga cancela la anterior (y su agregación en el worker)
     conceptsAbort = new AbortController();
     const { signal: loadSignal } = conceptsAbort;
+    if (concepts.length === 0) conceptsTbody.innerHTML = conceptsLoadingHtml;
+    conceptsTable.setAttribute("aria-busy", "true");
     try {
       // Una sola llamada para todos los conceptos del cliente (sin N+1).
       concepts = await clientsApi.getTaxConcepts(clientId);
@@ -180,16 +196,31 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
       conceptsTotals.innerHTML = totalsHtml(totals);
       conceptsTbody.innerHTML =
         concepts.length === 0
-          ? `<tr><td colspan="4" class="table__empty">Aún no hay conceptos extraídos por la IA.</td></tr>`
+          ? inRow(
+              4,
+              emptyStateHtml(
+                "Aún no hay conceptos extraídos.",
+                "Aparecen solos cuando la IA termina de analizar un documento de este cliente."
+              )
+            )
           : "";
       conceptsShown = 0;
       if (concepts.length) await showMoreConcepts(CONCEPT_ROWS_INITIAL);
       else conceptsMore.hidden = true;
     } catch (err) {
       if (err.name === "AbortError") return;
-      conceptsTbody.innerHTML = `<tr><td colspan="4" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
+      concepts = [];
+      conceptsTotals.innerHTML = "";
+      conceptsMore.hidden = true;
+      conceptsTbody.innerHTML = inRow(
+        4,
+        errorStateHtml(err.message, { title: "No se pudieron cargar los conceptos tributarios." })
+      );
+    } finally {
+      if (!loadSignal.aborted) conceptsTable.removeAttribute("aria-busy");
     }
   }
+  bindRetry(conceptsTbody, () => loadConcepts());
   conceptsMore.addEventListener("click", () => showMoreConcepts(CONCEPT_ROWS_STEP));
 
   /**

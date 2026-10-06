@@ -1,6 +1,9 @@
 import { metricsApi } from "../api/metrics.api.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
+import { bindRetry, emptyStateHtml, errorStateHtml, inRow, skeletonRowsHtml } from "../components/states.js";
+
+const loadingHtml = skeletonRowsHtml(5, { label: "Cargando métricas…" });
 
 // Umbrales de web.dev (bueno ≤ primero, "necesita mejorar" ≤ segundo, si no "malo").
 // FID es histórico: se muestra solo como referencia (ver texto de la vista).
@@ -87,7 +90,7 @@ export async function renderPerformance(root) {
           <table class="table" id="perf-table" aria-busy="true">
             <caption class="visually-hidden">Percentil 75 de cada métrica por ruta</caption>
             <thead><tr><th scope="col">Métrica</th><th scope="col">Ruta</th><th scope="col" class="num--end">p75</th><th scope="col">Evaluación</th><th scope="col" class="num--end">Muestras</th></tr></thead>
-            <tbody><tr><td colspan="5" class="table__empty">Cargando...</td></tr></tbody>
+            <tbody>${loadingHtml}</tbody>
           </table>
           <p class="form-hint">
             INP (Interaction to Next Paint) reemplazó a FID como Core Web Vital en marzo de 2024: FID solo medía la espera
@@ -104,23 +107,39 @@ export async function renderPerformance(root) {
   const table = root.querySelector("#perf-table");
   const tbody = table.querySelector("tbody");
 
+  // Cada carga tiene un número: si cambian el filtro dos veces seguidas, la
+  // respuesta vieja no pisa a la nueva.
+  let requestId = 0;
   async function load() {
+    const current = ++requestId;
     table.setAttribute("aria-busy", "true");
+    // Al cambiar un filtro, la tabla anterior se reemplaza por el skeleton:
+    // así no se confunden cifras viejas con las del filtro nuevo.
+    tbody.innerHTML = loadingHtml;
     try {
       const { rows } = await metricsApi.webVitalsSummary({
         days: form.days.value,
         device: form.device.value || undefined,
       });
+      if (current !== requestId) return;
       tbody.innerHTML = rows.length
         ? rowsHtml(rows)
-        : `<tr><td colspan="5" class="table__empty">Todavía no hay métricas en este período.</td></tr>`;
+        : inRow(
+            5,
+            emptyStateHtml(
+              "Todavía no hay métricas en este período.",
+              'Se registran solas mientras la gente usa la app. Prueba con un período más largo o con "Todos" los dispositivos.'
+            )
+          );
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5" class="table__empty table__empty--error">${escapeHtml(err.message)}</td></tr>`;
+      if (err.name === "AbortError" || current !== requestId) return;
+      tbody.innerHTML = inRow(5, errorStateHtml(err.message, { title: "No se pudieron cargar las métricas." }));
     } finally {
-      table.removeAttribute("aria-busy");
+      if (current === requestId) table.removeAttribute("aria-busy");
     }
   }
 
   form.addEventListener("change", load);
+  bindRetry(tbody, load);
   await load();
 }

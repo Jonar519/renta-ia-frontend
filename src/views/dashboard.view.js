@@ -5,11 +5,13 @@ import { escapeHtml } from "../utils/escapeHtml.js";
 import { getState } from "../state/store.js";
 import { createPagedList } from "../components/pagedList.js";
 import { can } from "../auth/permissions.js";
+import { emptyStateHtml, errorStateHtml, inRow, setPending, skeletonRowsHtml } from "../components/states.js";
 
 export async function renderDashboard(root) {
   // El admin ve los clientes de todos los contadores: se agrega la columna "Contador".
   const isAdmin = getState().user?.role === "admin";
   const columns = isAdmin ? 6 : 5;
+  const loadingHtml = skeletonRowsHtml(columns, { label: "Cargando clientes…" });
   root.innerHTML = `
     <div class="app-shell">
       ${renderSidebar("dashboard")}
@@ -58,7 +60,7 @@ export async function renderDashboard(root) {
               </tr>
             </thead>
             <tbody id="clients-tbody">
-              <tr><td colspan="${columns}" class="table__empty">Cargando...</td></tr>
+              ${loadingHtml}
             </tbody>
           </table>
           <div class="load-more">
@@ -101,14 +103,17 @@ export async function renderDashboard(root) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
+      const done = setPending(form.querySelector("button[type=submit]"), "Guardando…");
 
       try {
         await clientsApi.create(data);
-        showToast("Cliente creado correctamente", "success");
+        showToast(`Cliente "${data.fullName}" creado.`, "success");
         closePanel();
         await clients.reload();
       } catch (err) {
         showErrorToast(err);
+      } finally {
+        done();
       }
     });
   } else {
@@ -133,11 +138,31 @@ export async function renderDashboard(root) {
     status: root.querySelector("#clients-status"),
     fetchPage: (cursor) => clientsApi.list({ cursor }),
     renderItem: clientRowHtml,
-    emptyHtml: `<tr><td colspan="${columns}" class="table__empty">Todavía no tienes clientes. Crea el primero con "Nuevo cliente".</td></tr>`,
-    errorHtml: (message) =>
-      `<tr><td colspan="${columns}" class="table__empty table__empty--error">${message}</td></tr>`,
+    loadingHtml,
+    emptyHtml: inRow(columns, emptyClientsHtml()),
+    errorHtml: (message) => inRow(columns, errorStateHtml(message, { title: "No se pudieron cargar tus clientes." })),
     itemLabel: "clientes",
   });
 
   await clients.reload();
+}
+
+/** Vacío según lo que el rol puede hacer: solo quien puede crear clientes recibe esa indicación. */
+export function emptyClientsHtml() {
+  if (can("client.create")) {
+    return emptyStateHtml(
+      "Todavía no tienes clientes.",
+      'Crea el primero con "Nuevo cliente": luego podrás subir sus documentos y la IA extraerá las cifras.'
+    );
+  }
+  if (getState().user?.role === "client") {
+    return emptyStateHtml(
+      "Tu expediente todavía no está disponible.",
+      "Tu contador debe vincularlo a tu cuenta. Escríbele si crees que es un error."
+    );
+  }
+  return emptyStateHtml(
+    "Todavía no tienes clientes asignados.",
+    "Cuando el contador al que apoyas registre clientes, aparecerán aquí."
+  );
 }

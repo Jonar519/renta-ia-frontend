@@ -2,6 +2,7 @@ import { authApi } from "../api/auth.api.js";
 import { startSession } from "../auth/session.js";
 import { showErrorToast, showToast } from "../components/toast.js";
 import { bindTabs } from "../components/tabs.js";
+import { setPending } from "../components/states.js";
 
 export function renderLogin(root) {
   root.innerHTML = `
@@ -54,6 +55,7 @@ export function renderLogin(root) {
   loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(loginForm);
+    const done = setPending(loginForm.querySelector("button[type=submit]"), "Entrando…");
 
     try {
       const result = await authApi.login({
@@ -65,12 +67,15 @@ export function renderLogin(root) {
       window.location.hash = "/";
     } catch (err) {
       showErrorToast(err);
+    } finally {
+      done();
     }
   });
 
   registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(registerForm);
+    const done = setPending(registerForm.querySelector("button[type=submit]"), "Creando cuenta…");
 
     try {
       const result = await authApi.register({
@@ -83,6 +88,8 @@ export function renderLogin(root) {
       window.location.hash = "/";
     } catch (err) {
       showErrorToast(err);
+    } finally {
+      done();
     }
   });
 }
