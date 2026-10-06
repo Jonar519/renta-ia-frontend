@@ -46,6 +46,13 @@ export function startConnectivityBanner() {
     showToast(online ? RESTORED_MESSAGE : LOST_MESSAGE, online ? "success" : "warning");
   }
 
+  // Altura real del banner (puede ocupar varias líneas en móvil): el sidebar
+  // sticky empieza debajo de él (layout.css, --offline-banner-h).
+  const rootStyle = document.documentElement.style;
+  if (typeof ResizeObserver !== "undefined") {
+    new ResizeObserver(() => rootStyle.setProperty("--offline-banner-h", `${banner.offsetHeight}px`)).observe(banner);
+  }
+
   // Mientras dure la desconexión, también los controles que se pinten después.
   const observer = new MutationObserver(() => markNetworkControls(true));
 

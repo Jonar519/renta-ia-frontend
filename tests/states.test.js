@@ -295,3 +295,20 @@ describe("controles que necesitan red, sin conexión", () => {
     expect(disabled()).toEqual([]);
   });
 });
+
+describe("conectividad: una respuesta tardía no anula el 'sin conexión' del navegador", () => {
+  it("con navigator.onLine === false, reportNetworkOk no vuelve a marcar en línea", async () => {
+    vi.resetModules();
+    const connectivity = await import("../src/offline/connectivity.js");
+    const onLine = vi.spyOn(navigator, "onLine", "get");
+    onLine.mockReturnValue(false);
+    connectivity.setOnline(false);
+    connectivity.reportNetworkOk(); // respuesta que salió antes del corte
+    expect(connectivity.getConnectivity().online).toBe(false);
+
+    onLine.mockReturnValue(true);
+    connectivity.reportNetworkOk();
+    expect(connectivity.getConnectivity().online).toBe(true);
+    onLine.mockRestore();
+  });
+});

@@ -40,8 +40,15 @@ export function reportOfflineData(savedAt) {
   notify();
 }
 
-/** Una petición a la red funcionó: los datos en pantalla vuelven a estar al día. */
+/**
+ * Una petición a la red funcionó: los datos en pantalla vuelven a estar al día.
+ * Excepción: si el navegador YA dice que no hay red, una respuesta que salió
+ * antes del corte y llegó después no cuenta. navigator.onLine puede dar
+ * falsos "en línea", pero su "sin conexión" es definitivo; sin esta regla la
+ * app se marcaba en línea (y avisaba "Conexión restablecida") estando offline.
+ */
 export function reportNetworkOk() {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
   if (state.online && state.staleSince === null) return;
   state.online = true;
   state.staleSince = null;

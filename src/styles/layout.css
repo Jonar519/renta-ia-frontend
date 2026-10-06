@@ -19,8 +19,11 @@
   flex-direction: column;
   padding: 24px 20px;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  /* Sin conexión, el banner (sticky arriba) ocupa --offline-banner-h: el
+     sidebar empieza debajo y mide el resto, así su parte de abajo (el menú de
+     usuario) no queda cortada. connectivityBanner.js mide el banner. */
+  top: var(--offline-banner-h, 0px);
+  height: calc(100vh - var(--offline-banner-h, 0px));
   overflow-y: auto;
 }
 
@@ -87,11 +90,11 @@
     flex-direction: column;
   }
   .sidebar {
+    /* El menú de usuario abre hacia abajo, fuera de la barra: sin recortarlo. */
+    overflow: visible;
     width: 100%;
     flex-direction: row;
     align-items: center;
-    /* El menú de usuario abre hacia abajo, fuera de la barra: sin recortarlo. */
-    overflow: visible;
     padding: 14px 20px;
     position: static;
     height: auto;
