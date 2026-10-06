@@ -180,8 +180,10 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 | Chunk más grande (detalle de cliente) |  7,24 KB |      10 KB |
 | JS total (todos los chunks)           | 22,88 KB |      30 KB |
 | CSS total                             |  2,99 KB |       4 KB |
-| Fuentes (woff2)                       | 68,15 KB |      75 KB |
+| Fuentes (woff2)                       | 88,82 KB |      95 KB |
 | Fuentes de Google en `index.html`     |  ninguna | prohibidas |
+
+Fase 5 (B1): el presupuesto de fuentes sube de 75 a 95 KB por JetBrains Mono 400 (20,67 KB) para las cifras; medición y motivo en `docs/dark-mode.md` §4. El resto de la tabla corresponde a la medición original.
 
 ## 8. Métricas de usuarios reales (RUM)
 

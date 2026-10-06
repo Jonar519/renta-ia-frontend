@@ -20,7 +20,9 @@ const BUDGETS = {
   largestChunkGzip: 10 * KB, // medido: 7,24 KB (detalle de cliente)
   totalJsGzip: 30 * KB, // medido: 22,88 KB sumando todos los chunks
   totalCssGzip: 4 * KB, // medido: 2,99 KB
-  fontsBytes: 75 * KB, // medido: 68,15 KB (woff2 ya viene comprimido)
+  // Fase 5: +JetBrains Mono 400 latín (20,67 KB) para las cifras. Medido:
+  // 88,82 KB; antes 75 KB con 68,15 KB medidos (woff2 ya viene comprimido).
+  fontsBytes: 95 * KB,
 };
 
 const gzipSize = (file) => zlib.gzipSync(fs.readFileSync(file), { level: 9 }).length;

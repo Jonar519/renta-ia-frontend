@@ -47,9 +47,9 @@ function rowsHtml(rows) {
         <tr class="${r.route === null ? "perf-row--total" : ""}">
           <th scope="row">${escapeHtml(LABELS[r.metric] ?? r.metric)}</th>
           <td>${r.route === null ? "<strong>Todas</strong>" : `<code>${escapeHtml(r.route)}</code>`}</td>
-          <td>${format(r.metric, r.p75)}</td>
+          <td class="num num--end">${format(r.metric, r.p75)}</td>
           <td>${rating ? `<span class="badge badge--${rating.tone}">${rating.text}</span>` : "—"}</td>
-          <td>${r.samples.toLocaleString("es-CO")}</td>
+          <td class="num num--end">${r.samples.toLocaleString("es-CO")}</td>
         </tr>`;
     })
     .join("");
@@ -86,7 +86,7 @@ export async function renderPerformance(root) {
           </form>
           <table class="table" id="perf-table" aria-busy="true">
             <caption class="visually-hidden">Percentil 75 de cada métrica por ruta</caption>
-            <thead><tr><th scope="col">Métrica</th><th scope="col">Ruta</th><th scope="col">p75</th><th scope="col">Evaluación</th><th scope="col">Muestras</th></tr></thead>
+            <thead><tr><th scope="col">Métrica</th><th scope="col">Ruta</th><th scope="col" class="num--end">p75</th><th scope="col">Evaluación</th><th scope="col" class="num--end">Muestras</th></tr></thead>
             <tbody><tr><td colspan="5" class="table__empty">Cargando...</td></tr></tbody>
           </table>
           <p class="form-hint">

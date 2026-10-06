@@ -30,7 +30,7 @@ const TOTAL_ROWS = [
 
 function summaryHtml(s) {
   const totals = TOTAL_ROWS.map(
-    ([key, label]) => `<tr><th scope="row">${label}</th><td>${formatCOP(s.totals[key])}</td></tr>`
+    ([key, label]) => `<tr><th scope="row">${label}</th><td class="num num--end">${formatCOP(s.totals[key])}</td></tr>`
   ).join("");
 
   const e = s.estimate;
@@ -40,11 +40,11 @@ function summaryHtml(s) {
       <table class="table table--compact">
         <caption class="visually-hidden">Estimación del impuesto y del saldo</caption>
         <tbody>
-          <tr><th scope="row">Deducciones aceptadas (con topes)</th><td>${formatCOP(e.deductionsApplied)}</td></tr>
-          <tr><th scope="row">Base gravable estimada</th><td>${formatCOP(e.taxableBase)}</td></tr>
-          <tr><th scope="row">Impuesto estimado</th><td>${formatCOP(e.estimatedTax)}</td></tr>
+          <tr><th scope="row">Deducciones aceptadas (con topes)</th><td class="num num--end">${formatCOP(e.deductionsApplied)}</td></tr>
+          <tr><th scope="row">Base gravable estimada</th><td class="num num--end">${formatCOP(e.taxableBase)}</td></tr>
+          <tr><th scope="row">Impuesto estimado</th><td class="num num--end">${formatCOP(e.estimatedTax)}</td></tr>
           <tr><th scope="row">${e.estimatedBalance >= 0 ? "Saldo estimado a pagar" : "Saldo estimado a favor"}</th>
-              <td><strong>${formatCOP(Math.abs(e.estimatedBalance))}</strong></td></tr>
+              <td class="num num--end"><strong>${formatCOP(Math.abs(e.estimatedBalance))}</strong></td></tr>
         </tbody>
       </table>
       ${e.rulesVerified ? "" : `<p class="form-hint">Parámetros tributarios (UVT, tarifas) pendientes de verificar contra la normativa vigente.</p>`}`

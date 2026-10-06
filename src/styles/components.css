@@ -542,3 +542,22 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/*
+ * Cifras y datos tabulares (montos, fechas, años, números de documento,
+ * métricas): JetBrains Mono. Peso fijo 400 (es el único que se descarga) y
+ * sin negrita sintetizada. Los nombres y descripciones siguen en Inter.
+ * 0.95em: a igual tamaño, la monoespaciada se ve más grande que Inter.
+ */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+/* Montos: alineados a la derecha para comparar órdenes de magnitud. */
+.num--end {
+  text-align: right;
+}

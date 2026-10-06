@@ -27,7 +27,7 @@ export function documentsPanelHtml() {
       <div id="concepts-totals"></div>
       <table class="table" id="concepts-table">
         <caption class="visually-hidden">Conceptos tributarios extraídos por la IA de los documentos del cliente</caption>
-        <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col">Monto</th><th scope="col">Año</th></tr></thead>
+        <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col" class="num--end">Monto</th><th scope="col">Año</th></tr></thead>
         <tbody><tr><td colspan="4" class="table__empty">Cargando...</td></tr></tbody>
       </table>
       <div class="load-more">
@@ -88,7 +88,7 @@ function documentRowHtml(d) {
         <span class="badge badge--${status.tone}">${escapeHtml(status.text)}</span>
         ${status.detail ? `<p class="table__note">${escapeHtml(status.detail)}</p>` : ""}
       </td>
-      <td>${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
+      <td class="num">${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
       <td>${action}</td>
     </tr>`;
 }
@@ -97,8 +97,8 @@ const conceptRowHtml = (c) => `
   <tr>
     <td class="table__primary">${CONCEPT_LABELS[c.conceptType] || escapeHtml(c.conceptType)}</td>
     <td>${escapeHtml(c.description || "—")}</td>
-    <td>${formatCOP(c.amount)}</td>
-    <td>${escapeHtml(String(c.periodYear))}</td>
+    <td class="num num--end">${formatCOP(c.amount)}</td>
+    <td class="num">${escapeHtml(String(c.periodYear))}</td>
   </tr>`;
 
 const TOTAL_COLUMNS = ["gross_income", "withholding", "deduction", "pension_contribution", "health_contribution"];
@@ -112,7 +112,7 @@ function totalsHtml(rows) {
       <tbody>${rows
         .map(
           (r) =>
-            `<tr><th scope="row">${r.periodYear}</th>${TOTAL_COLUMNS.map((t) => `<td>${formatCOP(r.totals[t] ?? 0)}</td>`).join("")}</tr>`
+            `<tr><th scope="row" class="num">${r.periodYear}</th>${TOTAL_COLUMNS.map((t) => `<td class="num num--end">${formatCOP(r.totals[t] ?? 0)}</td>`).join("")}</tr>`
         )
         .join("")}</tbody>
     </table>`;

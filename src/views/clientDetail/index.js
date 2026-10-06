@@ -130,9 +130,10 @@ export async function renderClientDetail(root, clientId) {
       // Se actualiza el texto del <h1> existente (no se reemplaza el nodo)
       // para no perder el foco que el router le dio al cambiar de ruta.
       root.querySelector("#client-name").textContent = client.fullName;
-      root.querySelector("#client-meta").textContent = client.email
-        ? `${client.documentNumber} · ${client.email}`
-        : client.documentNumber;
+      const documentNumber = document.createElement("span");
+      documentNumber.className = "num";
+      documentNumber.textContent = client.documentNumber;
+      root.querySelector("#client-meta").replaceChildren(documentNumber, client.email ? ` · ${client.email}` : "");
     } catch (err) {
       root.querySelector("#client-name").textContent = "Cliente no disponible";
       showErrorToast(err);

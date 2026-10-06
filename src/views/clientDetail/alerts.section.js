@@ -42,8 +42,10 @@ function alertItemHtml(a) {
       <div class="alert-item__body">
         <p><strong>${escapeHtml(type)}</strong> · <span class="badge badge--${status.tone}">${escapeHtml(status.text)}</span></p>
         <p>${escapeHtml(a.message)}</p>
-        <p class="alert-item__meta">${new Date(a.createdAt).toLocaleString("es-CO")}${
-          a.dueDate ? " · vence " + new Date(a.dueDate).toLocaleDateString("es-CO", { timeZone: "UTC" }) : ""
+        <p class="alert-item__meta"><span class="num">${new Date(a.createdAt).toLocaleString("es-CO")}</span>${
+          a.dueDate
+            ? ` · vence <span class="num">${new Date(a.dueDate).toLocaleDateString("es-CO", { timeZone: "UTC" })}</span>`
+            : ""
         }</p>
         ${actions.length ? `<div class="alert-item__actions">${actions.join("")}</div>` : ""}
       </div>

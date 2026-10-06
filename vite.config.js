@@ -4,9 +4,15 @@ import { createHash } from "node:crypto";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-// Fuentes que se usan en la primera pintura (texto del login y títulos):
-// se precargan para que no esperen a que el navegador descubra el CSS.
-const PRELOAD_FONTS = [/inter-latin-wght-normal-[\w-]+\.woff2$/, /source-serif-4-latin-600-normal-[\w-]+\.woff2$/];
+// Fuentes que se usan en la primera pintura (texto del login y títulos) y la
+// de las cifras (contenido central de la app; sin precarga "saltarían" al
+// llegar la fuente): se precargan para que no esperen a que el navegador
+// descubra el CSS.
+const PRELOAD_FONTS = [
+  /inter-latin-wght-normal-[\w-]+\.woff2$/,
+  /source-serif-4-latin-600-normal-[\w-]+\.woff2$/,
+  /jetbrains-mono-latin-400-normal-[\w-]+\.woff2$/,
+];
 
 /**
  * Inserta <link rel="preload" as="font"> con el nombre FINAL (con hash) de

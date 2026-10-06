@@ -119,10 +119,10 @@ export async function renderDashboard(root) {
   const clientRowHtml = (c) => `
     <tr>
       <td class="table__primary">${escapeHtml(c.fullName)}</td>
-      <td>${escapeHtml(c.documentNumber)}</td>
+      <td class="num">${escapeHtml(c.documentNumber)}</td>
       <td>${escapeHtml(c.email || "—")}</td>
       ${isAdmin ? `<td>${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
-      <td>${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
+      <td class="num">${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
       <td><a class="link" href="#/clients/${escapeHtml(c.id)}">Ver detalle<span class="visually-hidden"> de ${escapeHtml(c.fullName)}</span></a></td>
     </tr>`;
 
