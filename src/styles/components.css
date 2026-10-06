@@ -249,26 +249,6 @@
   font-size: var(--fs-sm);
   margin-bottom: 28px;
 }
-.auth-tabs {
-  display: flex;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.auth-tab {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px 4px;
-  margin-right: 20px;
-  color: var(--text-muted);
-  border-bottom: 2px solid transparent;
-  font-size: var(--fs-sm);
-}
-.auth-tab.is-active {
-  color: var(--text-strong);
-  border-bottom-color: var(--accent-indicator);
-  font-weight: 500;
-}
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -278,6 +258,9 @@
   margin: -6px 0 0;
   font-size: var(--fs-sm);
   color: var(--text-muted);
+}
+.auth-hint--after {
+  margin-top: 20px;
 }
 
 /* Chat con IA */
