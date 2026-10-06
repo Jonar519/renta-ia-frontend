@@ -13,8 +13,9 @@ import { bindPasswordFields, passwordFieldHtml } from "../components/passwordFie
  * lado, una composición de marca "papel contable", SIN cifras: renglones y
  * línea de margen hechos solo con CSS, el nombre en serif, el lema y un
  * índice con puntos guía. Nada en violeta (reservado para contenido generado
- * por IA). Cada línea describe algo que la app hace (la marca de "sin
- * revisar" la agrega el bloque B16). Sigue el tema del sistema operativo.
+ * por IA). Cada línea describe algo que la app hace HOY (la tercera se apoya
+ * en el aviso de los resúmenes y de las alertas: verificar antes de declarar).
+ * Sigue el tema del sistema operativo.
  * Única micro-interacción: mostrar/ocultar la contraseña.
  *
  * Con verificación en dos pasos activa, la contraseña no basta: la API
@@ -44,7 +45,7 @@ export function renderLogin(root) {
         <ul class="login__index">
           <li><span class="login__term">Lee tus soportes<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">extrae las cifras de certificados, extractos y facturas.</span></li>
           <li><span class="login__term">Te avisa<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">vencimientos e inconsistencias entre documentos.</span></li>
-          <li><span class="login__term">Tú decides<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">lo extraído queda marcado hasta que lo revisas.</span></li>
+          <li><span class="login__term">Tú decides<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">las cifras y los resúmenes son orientativos; los verificas antes de declarar.</span></li>
         </ul>
       </section>
     </main>
