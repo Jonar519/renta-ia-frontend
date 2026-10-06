@@ -24,7 +24,7 @@ test("invitación → login → cliente → documento en tiempo real → alerta 
 
   // --- Cuenta por invitación + login ---
   await page.goto("/#/login");
-  await expect(page.getByRole("heading", { name: "Renta IA" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Inicia sesión", level: 1 })).toBeVisible();
   // Sin registro público: no hay pestaña ni botón "Crear cuenta".
   await expect(page.getByRole("tab")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /crear cuenta/i })).toHaveCount(0);

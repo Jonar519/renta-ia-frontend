@@ -28,8 +28,9 @@ const BUDGETS = {
   // Tope POR CHUNK (Fase 5, B6): ningún chunk supera 6 KB, salvo las
   // excepciones nombradas en CHUNK_EXCEPTIONS, cada una con su tope medido.
   chunkGzip: 6 * KB,
-  // 4 → 5 KB en B2 (medido 4,19 KB).
-  totalCssGzip: 5 * KB,
+  // 4 → 5 KB en B2 (medido 4,19 KB) → 5,5 KB en B10 (aprobado: el login con
+  // el flujo de ejemplo; medido 5,15 KB).
+  totalCssGzip: 5.5 * KB,
   // Fase 5: +JetBrains Mono 400 latín (20,67 KB) para las cifras. Medido:
   // 88,82 KB; antes 75 KB con 68,15 KB medidos (woff2 ya viene comprimido).
   fontsBytes: 95 * KB,
@@ -155,7 +156,7 @@ const measured = {
 let failed = false;
 const line = (ok, label, value, limit, note = "") =>
   console.log(
-    `  ${ok ? "OK   " : "EXCEDE"} ${label.padEnd(26)} ${(value / KB).toFixed(2).padStart(7)} KB / ${(limit / KB).toFixed(0)} KB${note}`
+    `  ${ok ? "OK   " : "EXCEDE"} ${label.padEnd(26)} ${(value / KB).toFixed(2).padStart(7)} KB / ${+(limit / KB).toFixed(1)} KB${note}`
   );
 
 console.log("Presupuesto de tamaño del bundle:");

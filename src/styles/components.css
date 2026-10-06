@@ -224,12 +224,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(
-    circle at top left,
-    var(--color-navy-800) 0%,
-    var(--color-navy-900) 55%,
-    var(--color-navy-950) 100%
-  );
+  background: var(--bg-app);
   padding: 24px;
 }
 .auth-card {
@@ -261,6 +256,11 @@
 }
 .auth-hint--after {
   margin-top: 20px;
+}
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 20px;
+  }
 }
 
 /* Chat con IA */
@@ -850,6 +850,8 @@
 }
 .password-field input {
   flex: 1;
+  /* Sin esto, el campo no se encoge bajo su ancho intrínseco (desborde en móvil). */
+  min-width: 0;
   padding-right: 92px;
 }
 .password-field__toggle {
@@ -955,4 +957,113 @@
 .auth-form .checkbox {
   flex-direction: row;
   align-items: center;
+}
+
+/* Login: formulario + flujo de ejemplo (sigue el tema del sistema) */
+.login {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-content: center;
+  justify-items: center;
+  padding: 24px;
+  background: var(--bg-app);
+}
+.login__brand,
+.login__headline {
+  font-family: var(--font-serif);
+  color: var(--text-strong);
+}
+.login__brand {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.login__hero {
+  max-width: 600px;
+}
+.login__headline {
+  font-size: var(--fs-2xl);
+  line-height: 1.2;
+}
+.login__lead {
+  color: var(--text-muted);
+  margin: 12px 0 28px;
+}
+.flow {
+  position: relative;
+  margin: 0;
+  padding: 24px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+.flow__tag {
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--text-strong);
+  color: var(--bg-surface);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.flow__steps {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+  padding: 0;
+}
+.flow-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+}
+.flow-card__file {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.flow-card--ai {
+  border-left: 3px solid var(--tone-ai-fg);
+}
+.flow-card__step {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.flow-card dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+}
+.flow__caption {
+  margin-top: 12px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.badge--ai {
+  background: var(--tone-ai-bg);
+  color: var(--tone-ai-fg);
+}
+@media (min-width: 960px) {
+  .login {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: center;
+    padding: 48px;
+  }
+  .login__hero {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .flow__steps {
+    grid-template-columns: 1fr 1.6fr 1fr;
+  }
 }

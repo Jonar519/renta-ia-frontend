@@ -145,6 +145,8 @@ export const PAIRS = [
   ["Badge advertencia / banner sin conexión", v("tone-warning-fg"), v("tone-warning-bg"), TEXT],
   ["Badge error / burbuja de error", v("tone-error-fg"), v("tone-error-bg"), TEXT],
   ["Badge IA", v("tone-ai-fg"), v("tone-ai-bg"), TEXT],
+  ['Login: etiqueta "Ejemplo" de la ilustración', v("bg-surface"), v("text-strong"), TEXT],
+  ["Login: borde IA de la tarjeta / superficie", v("tone-ai-fg"), v("bg-surface"), GRAPHIC],
   ["Toast informativo", v("color-white"), v("toast-bg"), TEXT],
   ["Toast de éxito", v("color-white"), v("color-green-700"), TEXT],
   ["Toast de error", v("color-white"), v("color-red-700"), TEXT],
