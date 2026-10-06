@@ -210,7 +210,7 @@ de ruta y el menú de B3 (hallazgo H6).
 ## 5. Movimiento
 
 - **Única animación con movimiento continuo** (decisión D4): el indicador
-  "procesando con IA" (clase `.ai-processing`, se construye en B2). Representa trabajo real
+  "procesando con IA" (clase `.ai-processing`, construido en B2: documento "Procesando", resumen "Generando…" y chat "Pensando…"). Representa trabajo real
   en curso. Hoy no existe ninguna otra: no hay ningún `@keyframes`.
 - **Todo lo demás**: transiciones cortas disparadas por el usuario (botón 150 ms, toast
   200 ms) y, desde B16, una micro-interacción de una sola vez para el badge de IA. Los
