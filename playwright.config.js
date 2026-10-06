@@ -8,6 +8,8 @@ import { defineConfig } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "e2e",
+  // El admin del seed activa su MFA (obligatorio para admin) antes de las pruebas.
+  globalSetup: "./e2e/globalSetup.js",
   timeout: 90_000,
   expect: { timeout: 20_000 },
   retries: process.env.CI ? 1 : 0,

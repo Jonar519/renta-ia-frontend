@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations, invitationTokenFor, loginThroughUi } from "./helpers.js";
+import { collectCspViolations, createAdminWithMfa, invitationTokenFor, loginThroughUi } from "./helpers.js";
 
 /**
  * Alta por invitación de punta a punta, por la interfaz (B6): el admin
@@ -9,7 +9,6 @@ import { collectCspViolations, invitationTokenFor, loginThroughUi } from "./help
  * (email_outbox): nunca llega al navegador del admin.
  */
 
-const SEED_ADMIN = { email: "admin@example.com", password: "Password123!" };
 const newEmail = (tag) => `e2e-${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@test.local`;
 
 async function openUsers(page) {
@@ -39,7 +38,7 @@ test("el admin invita y la persona activa su cuenta; el token nunca llega al nav
     if (res.url().includes("/api/")) adminBodies.push(await res.text().catch(() => ""));
   });
 
-  await loginThroughUi(page, SEED_ADMIN);
+  await loginThroughUi(page, await createAdminWithMfa());
   await openUsers(page);
   await expectNoSeriousA11yViolations(page, testInfo, "usuarios");
 
@@ -93,7 +92,7 @@ test("reenviar invalida el enlace anterior; cancelar pide confirmación y devuel
   page,
   browser,
 }, testInfo) => {
-  await loginThroughUi(page, SEED_ADMIN);
+  await loginThroughUi(page, await createAdminWithMfa());
   await openUsers(page);
   const email = newEmail("reenvio");
   await inviteThroughUi(page, { name: "Reenvío E2E", email });

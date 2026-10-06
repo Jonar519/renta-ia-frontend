@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations } from "./helpers.js";
+import { collectCspViolations, createAdminWithMfa, loginThroughUi } from "./helpers.js";
 
 /**
  * Guard de ruta por rol, menú de usuario y sidebar sin conexión, en Chrome.
@@ -12,7 +12,6 @@ const PASSWORD = "Password123!";
 const USERS = {
   assistant: "luis@example.com",
   accountant: "ana@example.com",
-  admin: "admin@example.com",
 };
 
 async function login(page, email) {
@@ -81,7 +80,7 @@ test("un contador también rebota; el admin sí entra", async ({ browser }) => {
   await expect(accountant.getByRole("alert")).toContainText("Tu rol (Contador/a) no tiene acceso.");
 
   const admin = await (await browser.newContext()).newPage();
-  await login(admin, USERS.admin);
+  await loginThroughUi(admin, await createAdminWithMfa()); // admin: con verificación en dos pasos
   await admin.goto("/?desde=barra#/performance");
   await expect(admin.getByRole("heading", { name: "Rendimiento" })).toBeVisible();
   await expect(admin).toHaveURL(/#\/performance$/);
@@ -114,6 +113,8 @@ test("menú de usuario: teclado, foco, clic fuera, Mi perfil y Salir", async ({ 
   expect(popupBox.x + popupBox.width).toBeLessThanOrEqual(sidebarBox.x + sidebarBox.width);
   await expectNoSeriousA11yViolations(page, testInfo, "menu-abierto");
 
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("menuitem", { name: "Seguridad" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: "Salir" })).toBeFocused();
   await page.keyboard.press("ArrowDown");

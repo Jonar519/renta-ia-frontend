@@ -105,6 +105,9 @@ jobs:
       AI_PROVIDER: mock
       AI_MOCK_LATENCY_MS: "1500"
       JWT_SECRET: secreto-solo-para-e2e-en-ci
+      # MFA obligatorio para admin (B9): e2e/globalSetup.js activa el del seed.
+      # Clave de 32 bytes SOLO para este job (no protege datos reales).
+      MFA_ENCRYPTION_KEY: ZTJlLWNpLXJlbnRhLWlhLW1mYS1jbGF2ZS0zMmJ5dGU=
       CORS_ORIGIN: http://localhost:4173
       STORAGE_LOCAL_PATH: /tmp/renta-ia-e2e-uploads
       PORT: "4000"

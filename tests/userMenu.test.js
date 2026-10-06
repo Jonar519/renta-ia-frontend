@@ -38,7 +38,8 @@ describe("menú de usuario", () => {
     expect(header).toContain("Ana María Contadora");
     expect(header).toContain("Contador/a");
     expect(header).toContain("ana@example.com");
-    expect(items().map((i) => i.textContent)).toEqual(["Mi perfil", "Salir"]);
+    expect(items().map((i) => i.textContent)).toEqual(["Mi perfil", "Seguridad", "Salir"]);
+    expect(items()[1].getAttribute("href")).toBe("#/seguridad");
   });
 
   it("al abrir, el foco va a la primera opción; ↓/↑ recorren con vuelta; Inicio/Fin", () => {
@@ -48,13 +49,15 @@ describe("menú de usuario", () => {
     key(document.activeElement, "ArrowDown");
     expect(document.activeElement).toBe(items()[1]);
     key(document.activeElement, "ArrowDown");
+    expect(document.activeElement).toBe(items()[2]);
+    key(document.activeElement, "ArrowDown");
     expect(document.activeElement).toBe(items()[0]);
     key(document.activeElement, "ArrowUp");
-    expect(document.activeElement).toBe(items()[1]);
+    expect(document.activeElement).toBe(items()[2]);
     key(document.activeElement, "Home");
     expect(document.activeElement).toBe(items()[0]);
     key(document.activeElement, "End");
-    expect(document.activeElement).toBe(items()[1]);
+    expect(document.activeElement).toBe(items()[2]);
   });
 
   it("↓ en el botón abre en la primera opción y ↑ en la última", () => {
@@ -62,7 +65,7 @@ describe("menú de usuario", () => {
     expect(document.activeElement).toBe(items()[0]);
     key(document.activeElement, "Escape");
     key(button(), "ArrowUp");
-    expect(document.activeElement).toBe(items()[1]);
+    expect(document.activeElement).toBe(items()[2]);
   });
 
   it("Escape cierra y devuelve el foco al botón que lo abrió", () => {
@@ -93,10 +96,16 @@ describe("menú de usuario", () => {
     expect(popup().hidden).toBe(true);
   });
 
-  it("'Mi perfil' lleva a #/profile y 'Salir' cierra la sesión con confirmación", async () => {
+  it("'Mi perfil' y 'Seguridad' navegan y cierran el menú (sin cerrar sesión); 'Salir' cierra la sesión", async () => {
     expect(items()[0].getAttribute("href")).toBe("#/profile");
     button().click();
-    items()[1].click();
+    items()[1].click(); // Seguridad
+    await Promise.resolve();
+    expect(popup().hidden).toBe(true);
+    expect(logout).not.toHaveBeenCalled();
+
+    button().click();
+    items()[2].click(); // Salir
     await Promise.resolve();
     await Promise.resolve();
     expect(logout).toHaveBeenCalled();

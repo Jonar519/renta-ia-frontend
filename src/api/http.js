@@ -1,4 +1,4 @@
-import { getState } from "../state/store.js";
+import { getState, setAuth } from "../state/store.js";
 import { CSRF_HEADERS, refreshSession } from "../auth/session.js";
 import { getRouteSignal } from "../router.js";
 import { backoffDelay } from "../utils/backoff.js";
@@ -34,13 +34,15 @@ export const OFFLINE_WRITE_ERROR = "Sin conexión: esta acción necesita interne
 
 /** Error de red/HTTP con su tipo: "network" | "timeout" | "http" | "offline". */
 export class HttpError extends Error {
-  constructor(message, { kind, status, cause, details } = {}) {
+  constructor(message, { kind, status, cause, details, code } = {}) {
     super(message, { cause });
     this.name = "HttpError";
     this.kind = kind;
     this.status = status;
     /** En un 400 de validación: [{ field, message }] tal como los manda la API. */
     this.details = details;
+    /** Identificador estable de la API (p. ej. "mfa_enrollment_required"). */
+    this.code = code;
   }
 }
 
@@ -188,10 +190,13 @@ async function request(
     }
 
     if (!response.ok) {
+      // Un admin al que le restablecieron el MFA: el guard lo lleva a "Seguridad".
+      if (data?.code === "mfa_enrollment_required" && user) setAuth(getState().token, { ...user, mfaEnabled: false });
       throw new HttpError(buildErrorMessage(data, response.status), {
         kind: "http",
         status: response.status,
         details: Array.isArray(data?.details) ? data.details : undefined,
+        code: data?.code,
       });
     }
 

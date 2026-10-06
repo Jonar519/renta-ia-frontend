@@ -47,6 +47,7 @@ export function userMenuHtml(user = getState().user) {
         <div class="user-menu__header">${headerHtml(user)}</div>
         <ul class="user-menu__list" id="user-menu-list" role="menu" aria-labelledby="user-menu-button">
           <li role="none"><a role="menuitem" tabindex="-1" class="user-menu__item" href="#/profile">Mi perfil</a></li>
+          <li role="none"><a role="menuitem" tabindex="-1" class="user-menu__item" href="#/seguridad">Seguridad</a></li>
           <li role="none"><button role="menuitem" tabindex="-1" type="button" class="user-menu__item" data-action="logout">Salir</button></li>
         </ul>
       </div>
@@ -125,11 +126,13 @@ export function bindUserMenu(root) {
     }
   });
 
-  // Al elegir "Mi perfil" el enlace navega; el menú se cierra.
-  items[0].addEventListener("click", () => close());
-  items[1].addEventListener("click", async () => {
+  // Por su función, no por su posición: los enlaces ("Mi perfil", "Seguridad")
+  // navegan y cierran el menú; "Salir" cierra la sesión.
+  for (const link of popup.querySelectorAll("a[role=menuitem]")) link.addEventListener("click", () => close());
+  const logoutItem = popup.querySelector("[data-action=logout]");
+  logoutItem.addEventListener("click", async () => {
     close();
-    items[1].disabled = true;
+    logoutItem.disabled = true;
     await logout();
     showToast("Cerraste sesión.", "success");
   });

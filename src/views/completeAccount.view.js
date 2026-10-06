@@ -27,7 +27,7 @@ export function renderCompleteAccount(root, token) {
     lookup: (t) => authApi.lookupInvitation(t),
     introHtml: (inv) =>
       `<p class="auth-subtitle">Hola, <strong>${escapeHtml(inv.name)}</strong>. Te invitaron a Renta IA como
-        <strong>${escapeHtml(ROLE_LABELS[inv.role] ?? inv.role)}</strong>. Define tu contraseña para activar tu cuenta.</p>`,
+        <strong>${escapeHtml(ROLE_LABELS[inv.role] ?? inv.role)}</strong>. Define tu contraseña para activar tu cuenta.${inv.mfaRequired ? " Luego activarás la verificación en dos pasos (obligatoria)." : ""}</p>`,
     extraFieldsHtml: (inv) => `
       <div class="auth-field">
         <label for="complete-email">Correo</label>

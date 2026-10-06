@@ -97,3 +97,30 @@ describe("http.js", () => {
     await expect(http.get("/api/clients")).rejects.toThrow("El servidor tuvo un problema (502)");
   });
 });
+
+describe("http.js: MFA obligatorio", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("un 403 mfa_enrollment_required marca la sesión sin MFA (el guard la lleva a Seguridad) y conserva el código", async () => {
+    setAuth("t", { id: "a1", name: "Admin", role: "admin", mfaEnabled: true });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(403, { error: "Activa la verificación en dos pasos.", code: "mfa_enrollment_required" })
+        )
+    );
+    const err = await http.get("/api/admin/invitations", { retries: 0 }).catch((e) => e);
+    expect(err.status).toBe(403);
+    expect(err.code).toBe("mfa_enrollment_required");
+    expect(getState().user.mfaEnabled).toBe(false);
+  });
+
+  it("otro 403 no toca la sesión", async () => {
+    setAuth("t", { id: "c1", name: "Ana", role: "accountant", mfaEnabled: true });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(403, { error: "Sin permiso" })));
+    await http.get("/api/admin/audit", { retries: 0 }).catch(() => {});
+    expect(getState().user.mfaEnabled).toBe(true);
+  });
+});

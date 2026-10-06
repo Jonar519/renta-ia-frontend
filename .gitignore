@@ -12,3 +12,5 @@ dist/
 # Resultados locales de Playwright (E2E)
 test-results/
 playwright-report/
+# Sesión y secreto TOTP del admin del seed (e2e/globalSetup.js)
+e2e/.auth/

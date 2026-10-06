@@ -1,5 +1,8 @@
+import fs from "node:fs";
 import { expect, request } from "@playwright/test";
 import pg from "pg";
+import { API, DATABASE_URL, SEED_ADMIN_FILE } from "./config.js";
+import { totpCode } from "./totp.js";
 
 /**
  * Registra en `violations` cada violación de la Content-Security-Policy de
@@ -16,15 +19,26 @@ export async function collectCspViolations(page) {
   return violations;
 }
 
-// API y base del stack E2E (en CI: E2E_API_URL y DATABASE_URL del job).
-const API = process.env.E2E_API_URL || "http://localhost:4100";
-const DATABASE_URL =
-  process.env.E2E_DATABASE_URL ||
-  process.env.DATABASE_URL ||
-  "postgresql://postgres:postgres@localhost:5433/renta_ia_e2e";
-// Admin del seed (renta-ia-database/seed; el job de CI lo carga).
-const SEED_ADMIN = { email: "admin@example.com", password: "Password123!" };
 export const NEW_ACCOUNT_PASSWORD = "caballo correcto bateria grapa";
+
+/** Sesión del admin del seed, con MFA activo (la deja e2e/globalSetup.js). */
+const seedAdminToken = () => JSON.parse(fs.readFileSync(SEED_ADMIN_FILE, "utf8")).accessToken;
+const uniqueEmail = (tag = "e2e") => `${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@test.local`;
+
+/** Invita por la API (como el admin del seed) y devuelve el correo. */
+export async function inviteByApi({ name, role, email = uniqueEmail() }) {
+  const api = await request.newContext({ baseURL: API });
+  try {
+    const invited = await api.post("/api/admin/invitations", {
+      headers: { Authorization: `Bearer ${seedAdminToken()}` },
+      data: { name, email, role },
+    });
+    expect(invited.status(), `invitación: ${await invited.text()}`).toBe(201);
+    return email;
+  } finally {
+    await api.dispose();
+  }
+}
 
 /**
  * Último token enviado a ese correo con esa plantilla, leído de la bandeja
@@ -82,34 +96,55 @@ export async function outboxCount(email, template) {
  * con su contraseña. Contexto HTTP propio: no comparte cookies con la página.
  */
 export async function createAccountByInvitation({ name = "Contadora E2E", role = "accountant" } = {}) {
+  const email = await inviteByApi({ name, role });
   const api = await request.newContext({ baseURL: API });
   try {
-    const login = await api.post("/api/auth/login", { data: SEED_ADMIN });
-    expect(login.status(), "login del admin del seed").toBe(200);
-    const { accessToken } = await login.json();
-    const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@test.local`;
-    const invited = await api.post("/api/admin/invitations", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name, email, role },
-    });
-    expect(invited.status(), "invitación").toBe(201);
     const accepted = await api.post("/api/auth/invitations/accept", {
       data: { token: await invitationTokenFor(email), password: NEW_ACCOUNT_PASSWORD },
     });
     expect(accepted.status(), "activación").toBe(200);
-    return { email, password: NEW_ACCOUNT_PASSWORD };
+    return { email, password: NEW_ACCOUNT_PASSWORD, accessToken: (await accepted.json()).accessToken };
   } finally {
     await api.dispose();
   }
 }
 
-/** Inicia sesión por la interfaz. */
-export async function loginThroughUi(page, { email, password }) {
+/**
+ * Admin nuevo con la verificación en dos pasos ya activa (por la API).
+ * Devuelve su secreto TOTP y sus códigos de recuperación. Uno por prueba:
+ * cada código de la app sirve una sola vez.
+ */
+export async function createAdminWithMfa({ name = "Admin E2E" } = {}) {
+  const account = await createAccountByInvitation({ name, role: "admin" });
+  const api = await request.newContext({ baseURL: API });
+  try {
+    const headers = { Authorization: `Bearer ${account.accessToken}` };
+    const setup = await api.post("/api/users/me/mfa/setup", { headers, data: { password: account.password } });
+    expect(setup.status(), "MFA setup").toBe(201);
+    const { secret } = await setup.json();
+    const enable = await api.post("/api/users/me/mfa/enable", { headers, data: { code: totpCode(secret) } });
+    expect(enable.status(), "MFA enable").toBe(200);
+    return { ...account, mfaSecret: secret, recoveryCodes: (await enable.json()).recoveryCodes };
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Inicia sesión por la interfaz. Con mfaSecret, completa el segundo paso con
+ * el código del paso SIGUIENTE (+30 s: la API acepta ±1 paso y nunca repite
+ * el que se usó al activar).
+ */
+export async function loginThroughUi(page, { email, password, mfaSecret }) {
   await page.goto("/#/login");
   const form = page.locator("#login-form");
   await form.getByLabel("Correo").fill(email);
   await form.getByLabel("Contraseña").fill(password);
   await form.getByRole("button", { name: "Entrar" }).click();
+  if (mfaSecret) {
+    await page.getByLabel("Código de la app").fill(totpCode(mfaSecret, 1));
+    await page.getByRole("button", { name: "Verificar" }).click();
+  }
   await expect(page.getByRole("heading", { name: "Tus clientes" })).toBeVisible();
 }
 

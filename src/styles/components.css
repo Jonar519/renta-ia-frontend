@@ -947,3 +947,12 @@
   color: var(--text-muted);
   margin-bottom: 20px;
 }
+
+/* Verificación en dos pasos (views/security.view.js) */
+.mfa-codes {
+  columns: 2;
+}
+.auth-form .checkbox {
+  flex-direction: row;
+  align-items: center;
+}

@@ -4,6 +4,8 @@ import { ROLE_LABELS } from "../auth/roles.js";
 export function noticeText({ reason, label = "esa página", role } = {}) {
   if (reason === "missing") return "La página que buscabas no existe. Te llevamos a Clientes.";
   if (reason === "login") return "Inicia sesión para continuar.";
+  if (reason === "mfa")
+    return "Como administrador, primero debes activar la verificación en dos pasos: es obligatoria para tu rol.";
   const who = ROLE_LABELS[role] ? ` Tu rol (${ROLE_LABELS[role]}) no tiene acceso.` : "";
   return `No tienes permiso para ver "${label}".${who} Te llevamos a Clientes.`;
 }

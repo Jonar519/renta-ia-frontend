@@ -43,6 +43,7 @@ const ROUTES = [
   ["/", () => import("./views/dashboard.view.js"), { auth: true, label: "Clientes" }],
   ["/clients/:id", () => import("./views/clientDetail/index.js"), { auth: true, label: "Detalle de cliente" }],
   ["/profile", () => import("./views/profile.view.js"), { auth: true, label: "Mi perfil" }],
+  ["/seguridad", () => import("./views/security.view.js"), { auth: true, label: "Seguridad", mfaSetup: true }],
   ["/performance", () => import("./views/performance.view.js"), { auth: true, roles: ADMIN, label: "Rendimiento" }],
   ["/admin/users", () => import("./views/adminUsers.view.js"), { auth: true, roles: ADMIN, label: "Usuarios" }],
 ];
@@ -51,7 +52,15 @@ for (const [pattern, load, access] of ROUTES) registerRoute(pattern, lazyView(lo
 // Guard: sin sesión → login; rol sin permiso o ruta inexistente → Clientes,
 // con un aviso que explica por qué. El rol se vuelve a comprobar cuando
 // cambia la sesión (la pista de localStorage puede traer un rol desactualizado).
-setRouteGuard((route) => decideRoute(route, { hasSession: hasSession(), role: getState().user?.role }));
+// MFA obligatorio (admin, decidido por la API): mientras no lo active, solo "Seguridad".
+setRouteGuard((route) => {
+  const { user } = getState();
+  return decideRoute(route, {
+    hasSession: hasSession(),
+    role: user?.role,
+    mfaPending: user?.role === "admin" && user.mfaEnabled === false,
+  });
+});
 // El aviso es raro (solo tras un rebote): su código se descarga cuando hace falta.
 setNoticeRenderer((message) => import("./components/routeNotice.js").then((m) => m.showRouteNotice(message)));
 // Solo con usuario: el cierre de sesión ya lleva al login (auth/session.js).
