@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appendInBatches, yieldToMain } from "../src/utils/scheduling.js";
 import { createPagedList } from "../src/components/pagedList.js";
+import { errorStateHtml, inItem } from "../src/components/states.js";
 import { aggregateConcepts } from "../src/utils/aggregateConcepts.js";
 import { createWorkerClient } from "../src/workers/workerClient.js";
 import { sha256Hex, validateFile } from "../src/workers/upload.worker.js";
@@ -69,8 +70,9 @@ describe("createPagedList", () => {
       status: document.getElementById("status"),
       fetchPage,
       renderItem: (item) => `<li data-id="${item.id}">${item.name}</li>`,
+      loadingHtml: "<li>cargando</li>",
       emptyHtml: "<li>vacío</li>",
-      errorHtml: (m) => `<li>error: ${m}</li>`,
+      errorHtml: (m) => inItem(errorStateHtml(m)),
       itemLabel: "ítems",
     });
     return { list, fetchPage };

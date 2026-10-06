@@ -79,20 +79,12 @@
   font-weight: 500;
   color: var(--text);
 }
-.table__empty {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 24px;
-}
 /* Detalle bajo un badge (ej. motivo de un error de procesamiento) */
 .table__note {
   margin-top: 4px;
   font-size: var(--fs-xs);
   color: var(--text-muted);
   max-width: 36ch;
-}
-.table__empty--error {
-  color: var(--tone-error-fg);
 }
 
 /* Badges de estado/severidad */
@@ -560,4 +552,133 @@
 /* Montos: alineados a la derecha para comparar órdenes de magnitud. */
 .num--end {
   text-align: right;
+}
+
+/*
+ * Estados de las vistas (components/states.js, docs/ui-states.md).
+ * Skeletons ESTÁTICOS: sin shimmer ni pulso (la única animación continua es
+ * .ai-processing). Son decorativos y aria-hidden.
+ */
+.skeleton {
+  display: block;
+  height: 0.75em;
+  width: 70%;
+  border-radius: var(--radius-sm);
+  background: var(--border-subtle);
+}
+.skeleton--w1 {
+  width: 72%;
+}
+.skeleton--w2 {
+  width: 48%;
+}
+.skeleton--w3 {
+  width: 86%;
+}
+.skeleton--w4 {
+  width: 60%;
+}
+.skeleton--w5 {
+  width: 40%;
+}
+.skeleton--w6 {
+  width: 78%;
+}
+.skeleton--title {
+  display: inline-block;
+  width: 12ch;
+  height: 0.9em;
+}
+.skeleton--pill {
+  width: 56px;
+  height: 1.4em;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.skeleton-row td {
+  padding: 14px 12px;
+}
+.skeleton-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.skeleton-item__lines,
+.skeleton-block {
+  flex: 1;
+  display: grid;
+  gap: 10px;
+}
+.skeleton-block {
+  padding: 8px 0;
+}
+.state-sr td {
+  padding: 0;
+  border: none;
+}
+.state-row td {
+  border-bottom: none;
+}
+.state-row {
+  list-style: none;
+}
+.state {
+  padding: 24px 12px;
+  text-align: center;
+}
+.state__title {
+  font-weight: 500;
+  color: var(--text);
+}
+.state__message {
+  margin: 6px auto 0;
+  max-width: 60ch;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.state--error .state__title {
+  color: var(--tone-error-fg);
+}
+.state .btn {
+  margin-top: 14px;
+}
+.load-more__error {
+  margin-right: 12px;
+  font-size: var(--fs-sm);
+  color: var(--tone-error-fg);
+}
+.chat-retry {
+  margin-left: 4px;
+}
+
+/*
+ * "Procesando con IA": la ÚNICA animación con movimiento continuo del
+ * sistema (decisión D4; tests/motion.test.js lo impone). Representa trabajo
+ * real en curso: documento analizándose, resumen o respuesta del chat
+ * generándose. Con prefers-reduced-motion queda como un punto estático.
+ */
+.ai-processing::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.45em;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 0.05em;
+  animation: ai-processing 1.4s ease-in-out infinite;
+}
+@keyframes ai-processing {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
