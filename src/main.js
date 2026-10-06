@@ -7,7 +7,6 @@ import "./styles/components.css";
 import { registerRoute, startRouter } from "./router.js";
 import { getState, hasSession, subscribe } from "./state/store.js";
 import { restoreSession } from "./auth/session.js";
-import { startRealtime, stopRealtime } from "./realtime/realtime.js";
 import { registerServiceWorker } from "./sw/registerSW.js";
 
 const app = document.getElementById("app");
@@ -68,10 +67,18 @@ document.querySelector(".skip-link")?.addEventListener("click", (event) => {
   document.getElementById("main-content")?.focus();
 });
 
-// Notificaciones en tiempo real mientras haya sesión.
+// Notificaciones en tiempo real mientras haya sesión. El módulo (WebSocket +
+// reconexión) se descarga recién con la primera sesión: el login no lo usa y
+// el chunk de entrada tiene presupuesto de 4 KB. Las llamadas se encadenan
+// sobre la misma promesa, así que respetan el orden (iniciar → detener).
+let realtime = null;
 function syncRealtime(state) {
-  if (state.token) startRealtime(() => getState().token);
-  else stopRealtime();
+  if (state.token) {
+    realtime ??= import("./realtime/realtime.js");
+    realtime.then((m) => m.startRealtime(() => getState().token));
+  } else {
+    realtime?.then((m) => m.stopRealtime());
+  }
 }
 subscribe(syncRealtime);
 syncRealtime(getState());
