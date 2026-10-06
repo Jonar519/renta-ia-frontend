@@ -3,15 +3,15 @@ import { expectNoSeriousA11yViolations } from "./a11y.js";
 import { collectCspViolations } from "./helpers.js";
 
 /**
- * Login rediseñado (B10) en Chrome: formulario + flujo de ejemplo, en
- * escritorio y en móvil, ambos temas (axe), sin desborde horizontal y con la
- * etiqueta "Ejemplo" claramente visible. Solo necesita el frontend.
+ * Login rediseñado (B10) en Chrome: formulario + composición de marca, en
+ * escritorio y en móvil, ambos temas (axe), sin desborde horizontal. Solo
+ * necesita el frontend.
  */
 
 const noHorizontalScroll = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
-test("escritorio: el flujo de ejemplo a la izquierda, el formulario a la derecha", async ({ page }, testInfo) => {
+test("escritorio: la composición de marca a la izquierda, el formulario a la derecha", async ({ page }, testInfo) => {
   const csp = await collectCspViolations(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#/login");
@@ -22,16 +22,24 @@ test("escritorio: el flujo de ejemplo a la izquierda, el formulario a la derecha
   expect(heroBox.x + heroBox.width).toBeLessThanOrEqual(formBox.x);
   expect(await noHorizontalScroll(page)).toBe(0);
 
-  // "Ejemplo": visible, legible (≥ 14 px, seminegrita) y anunciado.
-  const tag = page.getByText("Ejemplo", { exact: true });
-  await expect(tag).toBeVisible();
-  const style = await tag.evaluate((el) => {
-    const s = getComputedStyle(el);
-    return { size: parseFloat(s.fontSize), weight: Number(s.fontWeight) };
+  // Composición de marca: sin cifras y sin el violeta reservado para la IA.
+  await expect(hero.getByText("La IA lee. Tú decides.")).toBeVisible();
+  expect(await hero.textContent()).not.toMatch(/\d/);
+  // Los violetas de IA, resueltos por el navegador, contra cada color usado en la composición.
+  const violet = await hero.evaluate((el) => {
+    const probe = document.createElement("span");
+    document.body.append(probe);
+    const ai = ["--ai-accent", "--tone-ai-fg", "--tone-ai-bg"].map((token) => {
+      probe.style.color = `var(${token})`;
+      return getComputedStyle(probe).color;
+    });
+    probe.remove();
+    return [el, ...el.querySelectorAll("*")].flatMap((n) => {
+      const s = getComputedStyle(n);
+      return [s.color, s.backgroundColor, s.borderLeftColor, s.borderBottomColor].filter((c) => ai.includes(c));
+    });
   });
-  expect(style.size).toBeGreaterThanOrEqual(14);
-  expect(style.weight).toBeGreaterThanOrEqual(600);
-  await expect(page.getByRole("figure")).toContainText("datos ficticios");
+  expect(violet).toEqual([]);
 
   await expectNoSeriousA11yViolations(page, testInfo, "login-escritorio");
   expect(csp).toEqual([]);

@@ -10,11 +10,12 @@ import { bindPasswordFields, passwordFieldHtml } from "../components/passwordFie
  * suya desde el enlace que recibe por correo.
  *
  * El formulario va primero (en el DOM y en móvil) y tiene el único <h1>. Al
- * lado, el "momento hero": el flujo real del producto (documento → la IA
- * extrae → alerta) armado con los componentes de la app y datos FICTICIOS,
- * marcado "Ejemplo" (contraste medido en scripts/contrast.mjs) y explicado en
- * el <figcaption>; las tarjetas son decorativas (aria-hidden). Sigue el tema
- * del sistema operativo. Única micro-interacción: mostrar/ocultar la contraseña.
+ * lado, una composición de marca "papel contable", SIN cifras: renglones y
+ * línea de margen hechos solo con CSS, el nombre en serif, el lema y un
+ * índice con puntos guía. Nada en violeta (reservado para contenido generado
+ * por IA). Cada línea describe algo que la app hace (la marca de "sin
+ * revisar" la agrega el bloque B16). Sigue el tema del sistema operativo.
+ * Única micro-interacción: mostrar/ocultar la contraseña.
  *
  * Con verificación en dos pasos activa, la contraseña no basta: la API
  * entrega un paso de verificación (5 minutos, 5 intentos) y aquí se pide el
@@ -38,33 +39,13 @@ export function renderLogin(root) {
         <p class="auth-hint auth-hint--after">¿No tienes cuenta? Las crea el administrador de tu firma: recibirás un enlace por correo para activarla.</p>
       </div>
       <section class="login__hero" aria-label="Qué hace Renta IA">
-        <p class="login__headline">Del documento a la alerta, sin teclear una cifra.</p>
-        <p class="login__lead">Subes los certificados de tus clientes: la IA extrae las cifras y las reglas tributarias generan las alertas de vencimientos e inconsistencias.</p>
-        <figure class="flow">
-          <span class="flow__tag">Ejemplo</span>
-          <ol class="flow__steps" aria-hidden="true">
-            <li class="flow-card">
-              <span class="flow-card__step">Documento</span>
-              <span class="num flow-card__file">certificado_<wbr />ingresos_<wbr />2025.pdf</span>
-              <span class="badge badge--neutral">Certificado de ingresos</span>
-            </li>
-            <li class="flow-card flow-card--ai">
-              <span class="flow-card__step">La IA extrae</span>
-              <dl>
-                <dt>Ingreso bruto</dt><dd class="num">$85.000.000</dd>
-                <dt>Retención</dt><dd class="num">$6.200.000</dd>
-                <dt>Aporte a pensión</dt><dd class="num">$3.400.000</dd>
-              </dl>
-              <span class="badge badge--ai">Extraído por IA · sin revisar</span>
-            </li>
-            <li class="flow-card">
-              <span class="flow-card__step">Alerta</span>
-              <span class="badge badge--warning">Alta</span>
-              <span>Declaración de renta: vence el <span class="num">12/08/2026</span></span>
-            </li>
-          </ol>
-          <figcaption class="flow__caption">Ejemplo con datos ficticios: un certificado de ingresos, las cifras que extrae la IA (sin revisar todavía) y la alerta que generan las reglas tributarias.</figcaption>
-        </figure>
+        <p class="login__wordmark">Renta IA</p>
+        <p class="login__motto">La IA lee. Tú decides.</p>
+        <ul class="login__index">
+          <li><span class="login__term">Lee tus soportes<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">extrae las cifras de certificados, extractos y facturas.</span></li>
+          <li><span class="login__term">Te avisa<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">vencimientos e inconsistencias entre documentos.</span></li>
+          <li><span class="login__term">Tú decides<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">lo extraído queda marcado hasta que lo revisas.</span></li>
+        </ul>
       </section>
     </main>
   `;

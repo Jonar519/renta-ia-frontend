@@ -179,11 +179,11 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 | JS de entrada                            |  3,84 KB |       4 KB |
 | Cada chunk (salvo excepciones)           |  4,24 KB |       6 KB |
 | Chunk del detalle de cliente (excepción) |  8,32 KB |       9 KB |
-| JS del invitado (sin sesión)             | 22,29 KB |      24 KB |
-| JS del contador / asistente              | 40,93 KB |      46 KB |
-| JS del cliente del portal                | 40,32 KB |      46 KB |
-| JS del admin                             | 46,51 KB |      52 KB |
-| CSS total                                |  5,15 KB |     5,5 KB |
+| JS del invitado (sin sesión)             | 22,00 KB |      24 KB |
+| JS del contador / asistente              | 40,63 KB |      46 KB |
+| JS del cliente del portal                | 40,02 KB |      46 KB |
+| JS del admin                             | 46,21 KB |      52 KB |
+| CSS total                                |  5,16 KB |     5,5 KB |
 | Fuentes (woff2)                          | 88,82 KB |      95 KB |
 | Fuentes de Google en `index.html`        |  ninguna | prohibidas |
 
@@ -208,3 +208,5 @@ La app reporta sus propias Web Vitals (`src/metrics/webVitals.js`), y un adminis
 Fase 5 (aprobado antes de B10): **el tope de JS total se reemplaza por un tope por rol.** El total sumaba todos los chunks, incluidos los que un rol nunca descarga (las pantallas de admin para un contador, las de sesión para un invitado). El chequeo (`scripts/check-bundle.mjs`) suma, para cada rol, lo que puede llegar a descargar en el peor caso: el chunk de entrada, cada pantalla de la tabla de rutas de `src/main.js` a la que tiene acceso (con sus imports estáticos y diferidos), lo que se carga tras el load y sus Web Workers. El grafo sale del manifest de Vite (`build.manifest`), que el chequeo borra al terminar: no se publica (CI lo verifica). Un chunk que ningún rol descarga hace fallar el chequeo, y también una ruta con un acceso que el chequeo no reconoce. Se mantienen el JS de entrada (4 KB) y el tope por chunk (6 KB, excepción `clientDetail` 9 KB). pdf.js (B17, decisión D3) quedará fuera de los topes por rol, con su propio tope medido, solo si se descarga únicamente al abrir un documento.
 
 Fase 5 (B10, aprobado): CSS total 5 → 5,5 KB (medido 5,15 KB) por el login rediseñado (disposición formulario + flujo de ejemplo y sus tarjetas). El login sumó 0,57 KB de JS a cada rol (chunk `login.view` 1,60 → 2,15 KB); invitado 22,29 / 24 KB.
+
+Fase 5 (B10, cambio pedido): el flujo de ejemplo del login se reemplazó por una composición de marca sin cifras (renglones y línea de margen solo con CSS). Se eliminaron el CSS y el JS del flujo: JS −0,29 KB por rol (invitado 22,00 KB), CSS 5,16 / 5,5 KB.

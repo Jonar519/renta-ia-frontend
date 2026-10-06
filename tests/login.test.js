@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Login rediseñado (B10): formulario con el único <h1>, el flujo de ejemplo
- * como figura (tarjetas decorativas, texto equivalente en el figcaption) y
- * "Mostrar contraseña". En Chrome real (axe en ambos temas, móvil): e2e/login.spec.js.
+ * Login rediseñado (B10): formulario con el único <h1>, composición de
+ * marca "papel contable" sin cifras y "Mostrar contraseña". En Chrome real (axe en ambos temas, móvil): e2e/login.spec.js.
  */
 
 vi.mock("../src/api/auth.api.js", () => ({ authApi: { login: vi.fn(), loginMfa: vi.fn() } }));
@@ -25,7 +24,7 @@ afterEach(() => {
 });
 
 describe("login (B10)", () => {
-  it("un solo <h1>, en el formulario; el formulario va antes que el flujo de ejemplo", () => {
+  it("un solo <h1>, en el formulario; el formulario va antes que la composición de marca", () => {
     const headings = app().querySelectorAll("h1");
     expect(headings).toHaveLength(1);
     expect(headings[0].textContent).toBe("Inicia sesión");
@@ -34,15 +33,24 @@ describe("login (B10)", () => {
     expect(form.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("el ejemplo está marcado y explicado; las tarjetas son decorativas", () => {
-    const figure = app().querySelector("figure.flow");
-    const tag = figure.querySelector(".flow__tag");
-    expect(tag.textContent).toBe("Ejemplo");
-    expect(tag.closest("[aria-hidden=true]")).toBeNull(); // se anuncia
-    expect(figure.querySelector(".flow__steps").getAttribute("aria-hidden")).toBe("true");
-    expect(figure.querySelector("figcaption").textContent).toContain("datos ficticios");
-    // Las cifras de IA llevan el badge de contenido sin revisar (D5) y el tono violeta.
-    expect(figure.querySelector(".flow-card--ai .badge--ai").textContent).toBe("Extraído por IA · sin revisar");
+  it("composición de marca: nombre, lema y un índice de tres líneas, sin ninguna cifra", () => {
+    const hero = app().querySelector(".login__hero");
+    expect(hero.querySelector(".login__wordmark").textContent).toBe("Renta IA");
+    expect(hero.querySelector(".login__motto").textContent).toBe("La IA lee. Tú decides.");
+    // Como lo lee un lector de pantalla: "término: descripción" (los puntos guía son decorativos).
+    expect([...hero.querySelectorAll(".login__index li")].map((li) => li.textContent)).toEqual([
+      "Lee tus soportes:extrae las cifras de certificados, extractos y facturas.",
+      "Te avisa:vencimientos e inconsistencias entre documentos.",
+      "Tú decides:lo extraído queda marcado hasta que lo revisas.",
+    ]);
+    for (const leader of hero.querySelectorAll(".login__leader"))
+      expect(leader.getAttribute("aria-hidden")).toBe("true");
+    expect(hero.textContent).not.toMatch(/\d/);
+  });
+
+  it("nada del flujo de ejemplo ni del violeta de IA en el login", () => {
+    expect(app().querySelector("figure, .badge, [class*='ai']")).toBeNull();
+    expect(app().textContent).not.toMatch(/Ejemplo|DIAN/);
   });
 
   it("campos con etiqueta y 'Mostrar contraseña' (aria-pressed, nombre fijo)", () => {

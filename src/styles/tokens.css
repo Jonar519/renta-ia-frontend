@@ -107,6 +107,8 @@
   --tone-ai-bg: var(--color-violet-100);
   --tone-ai-fg: var(--color-violet-700);
   --ai-accent: var(--color-violet-600);
+  /* Renglones del "papel contable" del login (decorativos, muy suaves). */
+  --ledger-rule: color-mix(in srgb, var(--color-navy-500) 10%, var(--color-bg));
 
   --shadow-sm: 0 1px 2px rgba(22, 35, 58, 0.06);
   --shadow-lg: 0 24px 48px rgba(10, 16, 28, 0.35);
@@ -145,6 +147,7 @@
     --tone-ai-bg: color-mix(in srgb, var(--color-violet-700) 50%, var(--color-navy-900));
     --tone-ai-fg: var(--color-violet-100);
     --ai-accent: color-mix(in srgb, var(--color-white) 50%, var(--color-violet-600));
+    --ledger-rule: color-mix(in srgb, var(--color-navy-500) 22%, var(--color-navy-950));
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.55);

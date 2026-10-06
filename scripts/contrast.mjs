@@ -145,8 +145,12 @@ export const PAIRS = [
   ["Badge advertencia / banner sin conexión", v("tone-warning-fg"), v("tone-warning-bg"), TEXT],
   ["Badge error / burbuja de error", v("tone-error-fg"), v("tone-error-bg"), TEXT],
   ["Badge IA", v("tone-ai-fg"), v("tone-ai-bg"), TEXT],
-  ['Login: etiqueta "Ejemplo" de la ilustración', v("bg-surface"), v("text-strong"), TEXT],
-  ["Login: borde IA de la tarjeta / superficie", v("tone-ai-fg"), v("bg-surface"), GRAPHIC],
+  // Login, composición "papel contable": el texto puede caer sobre un renglón (peor caso).
+  ["Login: nombre, lema y términos / renglón", v("text-strong"), v("ledger-rule"), TEXT],
+  ["Login: descripciones del índice / renglón", v("text"), v("ledger-rule"), TEXT],
+  ["Login: línea de margen / fondo", v("accent-indicator"), v("bg-app"), GRAPHIC],
+  // Los renglones son decorativos y muy suaves (renglón vs fondo: 1,15:1 claro, 1,19:1 oscuro);
+  // los pares de arriba miden el texto justo sobre un renglón.
   ["Toast informativo", v("color-white"), v("toast-bg"), TEXT],
   ["Toast de éxito", v("color-white"), v("color-green-700"), TEXT],
   ["Toast de error", v("color-white"), v("color-red-700"), TEXT],
