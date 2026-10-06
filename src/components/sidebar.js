@@ -1,6 +1,6 @@
 import { getState } from "../state/store.js";
-import { logout } from "../auth/session.js";
-import { showToast } from "./toast.js";
+import { registerCleanup } from "../router.js";
+import { bindUserMenu, userMenuHtml } from "./userMenu.js";
 
 export function renderSidebar(active) {
   const link = (id, href, label) =>
@@ -13,18 +13,11 @@ export function renderSidebar(active) {
         ${link("dashboard", "#/", "Clientes")}
         ${isAdmin ? link("performance", "#/performance", "Rendimiento") : ""}
       </nav>
-      <button id="btn-logout" class="sidebar__logout" type="button">Cerrar sesión</button>
+      ${userMenuHtml()}
     </aside>
   `;
 }
 
 export function bindSidebarEvents(root) {
-  const logoutBtn = root.querySelector("#btn-logout");
-  if (!logoutBtn) return;
-
-  logoutBtn.addEventListener("click", async () => {
-    logoutBtn.disabled = true;
-    await logout();
-    showToast("Cerraste sesión.", "success");
-  });
+  registerCleanup(bindUserMenu(root));
 }

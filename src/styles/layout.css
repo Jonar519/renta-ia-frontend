@@ -55,20 +55,6 @@
   font-weight: 500;
 }
 
-.sidebar__logout {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--color-slate-200);
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--fs-sm);
-}
-.sidebar__logout:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-white);
-}
-
 .main {
   flex: 1;
   padding: 40px 48px;
@@ -104,6 +90,8 @@
     width: 100%;
     flex-direction: row;
     align-items: center;
+    /* El menú de usuario abre hacia abajo, fuera de la barra: sin recortarlo. */
+    overflow: visible;
     padding: 14px 20px;
     position: static;
     height: auto;
@@ -114,9 +102,6 @@
   .sidebar__brand {
     margin-bottom: 0;
     margin-right: 20px;
-  }
-  .sidebar__logout {
-    margin-left: auto;
   }
   .main {
     padding: 24px 20px;

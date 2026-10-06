@@ -693,3 +693,156 @@
     transform: scale(1);
   }
 }
+
+/*
+ * Menú de usuario (components/userMenu.js): en el sidebar, abre hacia arriba
+ * (en móvil, hacia abajo: layout.css). La ventana tiene botones, así que NO
+ * lleva pointer-events: none; se cierra con Escape o con un clic fuera.
+ */
+.user-menu {
+  position: relative;
+}
+.user-menu__button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--color-white);
+  cursor: pointer;
+  text-align: left;
+}
+.user-menu__button:hover,
+.user-menu__button[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.06);
+}
+.user-menu__avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-navy-800);
+  color: var(--color-white);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.user-menu__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.user-menu__name {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu__role {
+  font-size: var(--fs-xs);
+  color: var(--color-slate-200);
+}
+.user-menu__popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  /* El ancho del sidebar: overflow-y del sidebar también recorta en horizontal. */
+  width: 100%;
+  z-index: 160;
+  background: var(--bg-surface);
+  color: var(--text);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.user-menu__header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.user-menu__header-name {
+  font-weight: 500;
+}
+.user-menu__header-role,
+.user-menu__header-email {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.user-menu__list {
+  list-style: none;
+  padding: 6px;
+}
+.user-menu__item {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.user-menu__item:hover,
+.user-menu__item:focus-visible {
+  background: var(--bg-app);
+}
+
+/* Móvil: el sidebar es una barra arriba; el menú va a la derecha y abre hacia
+   abajo. Aquí y no en layout.css: este archivo se carga después y sus reglas
+   base del menú pisarían las de layout.css. */
+@media (max-width: 860px) {
+  .user-menu {
+    margin-left: auto;
+  }
+  .user-menu__popup {
+    top: calc(100% + 8px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+    width: 240px;
+  }
+  .user-menu__who {
+    display: none;
+  }
+}
+
+/* Aviso de rebote del guard de rutas (components/routeNotice.js): en el flujo,
+   no flotante. */
+.route-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--tone-warning-fg);
+  background: var(--tone-warning-bg);
+  color: var(--tone-warning-fg);
+  font-size: var(--fs-sm);
+}
+
+/* Datos de la cuenta (Mi perfil) */
+.profile-data {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 24px;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.profile-data dt {
+  color: var(--text-muted);
+}
+.profile-data dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
