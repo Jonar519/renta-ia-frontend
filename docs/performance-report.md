@@ -176,11 +176,11 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 
 | Recurso                                  |   Medido |     Límite |
 | ---------------------------------------- | -------: | ---------: |
-| JS de entrada                            |  3,93 KB |       4 KB |
+| JS de entrada                            |  3,84 KB |       4 KB |
 | Cada chunk (salvo excepciones)           |  4,24 KB |       6 KB |
 | Chunk del detalle de cliente (excepción) |  8,32 KB |       9 KB |
-| JS total (todos los chunks)              | 38,69 KB |      42 KB |
-| CSS total                                |  4,19 KB |       5 KB |
+| JS total (todos los chunks)              | 45,91 KB |      46 KB |
+| CSS total                                |  4,87 KB |       5 KB |
 | Fuentes (woff2)                          | 88,82 KB |      95 KB |
 | Fuentes de Google en `index.html`        |  ninguna | prohibidas |
 
@@ -189,6 +189,8 @@ Fase 5 (B1): el presupuesto de fuentes sube de 75 a 95 KB por JetBrains Mono 400
 Fase 5 (B2): JS total 30 → 34 KB (medido 30,08 KB) y CSS total 4 → 5 KB (medido 4,19 KB) por los estados explícitos de todas las vistas; detalle en `docs/ui-states.md`.
 
 Fase 5 (B6, aprobado): JS total 34 → 42 KB (medido 38,69 KB) por las pantallas de invitación (`adminUsers` 3,47 KB y `completeAccount` 2,17 KB), que solo descarga quien entra a esas rutas. Con dos condiciones: el JS de entrada se mantiene en 4 KB (medido 3,93 KB; los textos de los avisos y los nombres de rol salieron de la entrada) y un **tope de 6 KB por chunk**, con una única excepción documentada: el detalle de cliente (9 KB; medido 8,32 KB). El "chunk más grande ≤ 10 KB" anterior queda reemplazado por esas dos reglas.
+
+Fase 5 (B9, aprobado): JS total 42 → 46 KB (medido 45,91 KB) por las pantallas de la verificación en dos pasos: `security.view` 3,25 KB (solo se descarga al entrar a "Seguridad") y el segundo paso del login (+0,77 KB en `login.view`). Entrada 3,84 / 4 KB y todos los chunks bajo 6 KB. **QR:** medido antes de decidir, una librería en el navegador pesaba 4,4 KB (`uqr`, `lean-qr`), 7,9 KB (`qrcode-generator`) o 9,7 KB (`qrcode`) en gzip; se genera en el servidor (SVG en la respuesta de `/setup`, mostrado como `<img src="data:…">`) y cuesta 0 KB en el cliente. La cifra se mide con el build por defecto (el de CI); la URL de la API queda dentro del JS y la cambia unas centésimas (45,91 KB con `localhost:4000`, 45,96 KB con una URL de producción larga).
 
 ## 8. Métricas de usuarios reales (RUM)
 

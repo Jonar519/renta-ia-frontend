@@ -23,8 +23,10 @@ const BUDGETS = {
   // Fase 5: B2 (estados explícitos) llevó el total a 30,08 KB y B6 (pantallas
   // de invitación: adminUsers 3,47 + completeAccount 2,17) a 38,66 KB. Esos
   // chunks solo los descarga quien entra a esas rutas (admin o persona
-  // invitada); el total suma TODOS los chunks. 30 KB → 34 KB (B2) → 42 KB (B6).
-  totalJsGzip: 42 * KB,
+  // invitada); el total suma TODOS los chunks. 30 KB → 34 KB (B2) → 42 KB (B6)
+  // → 46 KB (B9, aprobado: pantallas de MFA, medido 45,91 KB; el QR lo genera
+  // el servidor, en el navegador habría sumado de 4,4 a 9,7 KB más).
+  totalJsGzip: 46 * KB,
   // 4 → 5 KB en B2 (medido 4,19 KB).
   totalCssGzip: 5 * KB,
   // Fase 5: +JetBrains Mono 400 latín (20,67 KB) para las cifras. Medido:
