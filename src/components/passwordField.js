@@ -1,5 +1,9 @@
 import { escapeHtml } from "../utils/escapeHtml.js";
 
+/** Política de contraseñas explicada a la persona (la valida la API). */
+export const PASSWORD_HINT =
+  "Mínimo 10 caracteres. Una frase de varias palabras es más segura que una clave corta con símbolos. No uses tu nombre ni tu correo.";
+
 /**
  * Campo de contraseña con "Mostrar contraseña" (botón de alternancia).
  *

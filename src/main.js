@@ -29,10 +29,15 @@ function lazyView(load) {
 // Rutas: [patrón, vista (import diferido; exporta por defecto (root, params)),
 // acceso]. auth/routeAccess.js decide con el acceso: auth = requiere sesión;
 // roles = solo esos roles; label = nombre para el aviso de rebote.
+// Las pantallas que llegan desde un enlace de correo (invitación,
+// restablecer) quitan el token de la barra y quedan en la ruta sin él.
 const PUBLIC = { auth: false };
 const ADMIN = ["admin"];
 const ROUTES = [
   ["/login", () => import("./views/login.view.js"), PUBLIC],
+  ["/recuperar", () => import("./views/forgotPassword.view.js"), PUBLIC],
+  ["/restablecer/:token", () => import("./views/resetPassword.view.js"), PUBLIC],
+  ["/restablecer", () => import("./views/resetPassword.view.js"), PUBLIC],
   ["/invitacion/:token", () => import("./views/completeAccount.view.js"), PUBLIC],
   ["/invitacion", () => import("./views/completeAccount.view.js"), PUBLIC],
   ["/", () => import("./views/dashboard.view.js"), { auth: true, label: "Clientes" }],

@@ -26,18 +26,51 @@ const DATABASE_URL =
 const SEED_ADMIN = { email: "admin@example.com", password: "Password123!" };
 export const NEW_ACCOUNT_PASSWORD = "caballo correcto bateria grapa";
 
-/** Último enlace de invitación enviado a ese correo, leído de la bandeja simulada (email_outbox). */
-export async function invitationTokenFor(email) {
+/**
+ * Último token enviado a ese correo con esa plantilla, leído de la bandeja
+ * simulada (email_outbox). La recuperación se procesa DESPUÉS de responder
+ * (tiempo constante): por eso se espera a que llegue el correo.
+ */
+async function outboxTokenFor(email, template, linkPattern) {
+  const db = new pg.Client({ connectionString: DATABASE_URL });
+  await db.connect();
+  try {
+    let token;
+    await expect
+      .poll(
+        async () => {
+          const { rows } = await db.query(
+            "SELECT body_text FROM email_outbox WHERE to_address = $1 AND template = $2 ORDER BY created_at DESC LIMIT 1",
+            [email, template]
+          );
+          token = rows[0]?.body_text?.match(linkPattern)?.[1];
+          return Boolean(token);
+        },
+        { message: `correo '${template}' para ${email} en email_outbox`, timeout: 5000 }
+      )
+      .toBe(true);
+    return token;
+  } finally {
+    await db.end();
+  }
+}
+
+/** Último enlace de invitación enviado a ese correo. */
+export const invitationTokenFor = (email) => outboxTokenFor(email, "invitation", /#\/invitacion\/([\w.-]+)/);
+
+/** Último enlace para restablecer la contraseña enviado a ese correo. */
+export const resetTokenFor = (email) => outboxTokenFor(email, "password_reset", /#\/restablecer\/([\w.-]+)/);
+
+/** Cuántos correos de esa plantilla recibió ese correo. */
+export async function outboxCount(email, template) {
   const db = new pg.Client({ connectionString: DATABASE_URL });
   await db.connect();
   try {
     const { rows } = await db.query(
-      "SELECT body_text FROM email_outbox WHERE to_address = $1 AND template = 'invitation' ORDER BY created_at DESC LIMIT 1",
-      [email]
+      "SELECT count(*)::int AS n FROM email_outbox WHERE to_address = $1 AND template = $2",
+      [email, template]
     );
-    const token = rows[0]?.body_text?.match(/#\/invitacion\/([\w.-]+)/)?.[1];
-    if (!token) throw new Error(`No hay invitación para ${email} en email_outbox`);
-    return token;
+    return rows[0].n;
   } finally {
     await db.end();
   }

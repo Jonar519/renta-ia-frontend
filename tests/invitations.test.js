@@ -103,11 +103,11 @@ describe("Completa tu cuenta", () => {
   it("valida en el navegador que las contraseñas coincidan antes de llamar a la API", async () => {
     authApi.lookupInvitation.mockResolvedValue(invitation);
     await renderCompleteAccount(app(), TOKEN);
-    const form = app().querySelector("#complete-form");
+    const form = app().querySelector("#token-form");
     form.elements.password.value = "una frase larga segura";
     form.elements.confirm.value = "otra frase distinta";
     form.dispatchEvent(new Event("submit", { cancelable: true }));
-    expect(app().querySelector("#complete-error").textContent).toBe("Las dos contraseñas no coinciden.");
+    expect(app().querySelector("#token-error").textContent).toBe("Las dos contraseñas no coinciden.");
     expect(authApi.acceptInvitation).not.toHaveBeenCalled();
   });
 
@@ -117,11 +117,11 @@ describe("Completa tu cuenta", () => {
       httpError(400, "Datos inválidos", [{ field: "body.password", message: "No puede contener tu nombre" }])
     );
     await renderCompleteAccount(app(), TOKEN);
-    const form = app().querySelector("#complete-form");
+    const form = app().querySelector("#token-form");
     form.elements.password.value = form.elements.confirm.value = "laura-gomez-2026";
     form.dispatchEvent(new Event("submit", { cancelable: true }));
     await flush();
-    expect(app().querySelector("#complete-error").textContent).toBe("No puede contener tu nombre.");
+    expect(app().querySelector("#token-error").textContent).toBe("No puede contener tu nombre.");
   });
 
   it("al activar: inicia la sesión, confirma y lleva a Clientes", async () => {
@@ -129,7 +129,7 @@ describe("Completa tu cuenta", () => {
     const session = { accessToken: "t", user: { id: "1", name: "Laura Gómez", role: "assistant" } };
     authApi.acceptInvitation.mockResolvedValue(session);
     await renderCompleteAccount(app(), TOKEN);
-    const form = app().querySelector("#complete-form");
+    const form = app().querySelector("#token-form");
     form.elements.password.value = form.elements.confirm.value = "una frase larga segura";
     form.dispatchEvent(new Event("submit", { cancelable: true }));
     await flush();
@@ -142,7 +142,7 @@ describe("Completa tu cuenta", () => {
   it("enlace inválido o vencido (410): mensaje claro y sin formulario", async () => {
     authApi.lookupInvitation.mockRejectedValue(httpError(410, "no válido"));
     await renderCompleteAccount(app(), TOKEN);
-    expect(app().querySelector("#complete-form")).toBeNull();
+    expect(app().querySelector("#token-form")).toBeNull();
     expect(app().querySelector("[role=alert]").textContent).toContain("no es válido o ya venció");
   });
 
@@ -154,7 +154,7 @@ describe("Completa tu cuenta", () => {
     app().querySelector("[data-retry]").click();
     await flush();
     expect(authApi.lookupInvitation).toHaveBeenCalledTimes(2);
-    expect(app().querySelector("#complete-form")).not.toBeNull();
+    expect(app().querySelector("#token-form")).not.toBeNull();
   });
 
   it("sin token (p. ej. tras recargar): indica abrir de nuevo el enlace, sin llamar a la API", async () => {

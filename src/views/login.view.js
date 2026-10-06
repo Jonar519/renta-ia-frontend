@@ -24,6 +24,7 @@ export function renderLogin(root) {
           </label>
           <button type="submit" class="btn btn--primary btn--block">Entrar</button>
         </form>
+        <p class="auth-hint auth-hint--after"><a href="#/recuperar">¿Olvidaste tu contraseña?</a></p>
         <p class="auth-hint auth-hint--after">¿No tienes cuenta? Las crea el administrador de tu firma: recibirás un enlace por correo para activarla.</p>
       </div>
     </main>
