@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { expectNoSeriousA11yViolations } from "./a11y.js";
 import { certificatePdf } from "./pdf.js";
 
 /**
@@ -9,20 +9,6 @@ import { certificatePdf } from "./pdf.js";
  * La IA es simulada (AI_PROVIDER=mock): sus respuestas llevan la marca
  * "[Respuesta simulada · ...]".
  */
-
-/** axe: falla ante violaciones "serious" o "critical" (WCAG 2.1 A/AA). */
-async function expectNoSeriousA11yViolations(page, testInfo, name) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-  await testInfo.attach(`axe-${name}.json`, {
-    body: JSON.stringify(results.violations, null, 2),
-    contentType: "application/json",
-  });
-  const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(
-    serious.map((v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`),
-    `Violaciones de accesibilidad en ${name}`
-  ).toEqual([]);
-}
 
 test("registro → cliente → documento en tiempo real → alerta → resumen → chat", async ({ page }, testInfo) => {
   const cspViolations = [];
