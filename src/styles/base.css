@@ -36,6 +36,13 @@ a {
   color: var(--text-link);
 }
 
+/* Código y rutas (p. ej. en Rendimiento): la misma monoespaciada que las cifras,
+   no la que el navegador trae por defecto. */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
 button,
 input,
 select {
