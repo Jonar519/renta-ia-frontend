@@ -1,4 +1,8 @@
-import { showUpdateBanner } from "../components/updateBanner.js";
+// El aviso de versión nueva solo hace falta cuando hay una: se descarga en ese
+// momento (y el Service Worker ya lo tiene precacheado). Así no pesa en el
+// chunk de entrada, que tiene presupuesto de 4 KB.
+const showUpdateBanner = (onReload) =>
+  import("../components/updateBanner.js").then((m) => m.showUpdateBanner(onReload));
 
 const UPDATE_CHECK_MS = 30 * 60 * 1000;
 

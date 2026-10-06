@@ -4,7 +4,8 @@ import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components.css";
 
-import { registerRoute, startRouter } from "./router.js";
+import { recheckRoute, registerRoute, setNoticeRenderer, setRouteGuard, startRouter } from "./router.js";
+import { decideRoute } from "./auth/routeAccess.js";
 import { getState, hasSession, subscribe } from "./state/store.js";
 import { restoreSession } from "./auth/session.js";
 import { registerServiceWorker } from "./sw/registerSW.js";
@@ -18,47 +19,65 @@ const app = document.getElementById("app");
  * estructura de forma síncrona y sigue cargando datos en segundo plano, así
  * que la promesa se resuelve apenas la vista es visible.
  */
-function lazyView(load, render, { auth = true } = {}) {
+function lazyView(load, render) {
   return async (params, { isStale }) => {
-    if (auth && !hasSession()) {
-      window.location.hash = "/login";
-      return;
-    }
     const module = await load();
     if (isStale()) return; // el usuario ya navegó a otra ruta mientras se descargaba
     render(module, params);
   };
 }
 
+// Acceso de cada ruta (auth/routeAccess.js decide): auth = requiere sesión;
+// roles = solo esos roles; label = nombre para el aviso de rebote.
 registerRoute(
   "/login",
   lazyView(
     () => import("./views/login.view.js"),
-    (m) => m.renderLogin(app),
-    { auth: false }
-  )
+    (m) => m.renderLogin(app)
+  ),
+  { auth: false }
 );
 registerRoute(
   "/",
   lazyView(
     () => import("./views/dashboard.view.js"),
     (m) => m.renderDashboard(app)
-  )
+  ),
+  { auth: true, label: "Clientes" }
 );
 registerRoute(
   "/clients/:id",
   lazyView(
     () => import("./views/clientDetail/index.js"),
     (m, params) => m.renderClientDetail(app, params.id)
-  )
+  ),
+  { auth: true, label: "Detalle de cliente" }
 );
 registerRoute(
   "/performance",
   lazyView(
     () => import("./views/performance.view.js"),
-    (m) => (getState().user?.role === "admin" ? m.renderPerformance(app) : (window.location.hash = "/"))
-  )
+    (m) => m.renderPerformance(app)
+  ),
+  { auth: true, roles: ["admin"], label: "Rendimiento" }
 );
+registerRoute(
+  "/profile",
+  lazyView(
+    () => import("./views/profile.view.js"),
+    (m) => m.renderProfile(app)
+  ),
+  { auth: true, label: "Mi perfil" }
+);
+
+// Guard: sin sesión → login; rol sin permiso o ruta inexistente → Clientes,
+// con un aviso que explica por qué. El rol se vuelve a comprobar cuando
+// cambia la sesión (la pista de localStorage puede traer un rol desactualizado).
+setRouteGuard((route) => decideRoute(route, { hasSession: hasSession(), role: getState().user?.role }));
+// El aviso es raro (solo tras un rebote): su código se descarga cuando hace falta.
+setNoticeRenderer((message) => import("./components/routeNotice.js").then((m) => m.showRouteNotice(message)));
+// Solo con usuario: el cierre de sesión ya lleva al login (auth/session.js).
+subscribe((state) => state.user && recheckRoute());
 
 // Skip-link: con un router basado en hash, un href="#main-content" normal
 // cambiaría de ruta. Se intercepta y se mueve el foco al contenido principal.
