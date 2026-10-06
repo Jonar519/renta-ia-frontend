@@ -112,6 +112,12 @@ describe("menú de usuario", () => {
     expect(document.querySelector(".toast").textContent).toBe("Cerraste sesión.");
   });
 
+  it("el botón se actualiza al cambiar el nombre en la sesión (Mi perfil), sin volver a pintar la pantalla", () => {
+    setAuth("token", { id: "1", name: "Beatriz Nueva", email: "ana@example.com", role: "accountant" });
+    expect(button().textContent).toContain("Beatriz Nueva");
+    expect(button().querySelector(".user-menu__avatar").textContent).toBe("BN");
+  });
+
   it("la cabecera usa los datos más recientes al abrir (el correo llega tras recuperar la sesión)", () => {
     setAuth("token", { id: "1", name: "Ana María Contadora", email: "nuevo@example.com", role: "accountant" });
     button().click();

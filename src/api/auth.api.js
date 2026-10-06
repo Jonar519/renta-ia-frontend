@@ -11,4 +11,6 @@ export const authApi = {
   requestPasswordReset: (email) => http.post("/api/auth/password-reset/request", { email }),
   lookupPasswordReset: (token) => http.post("/api/auth/password-reset/lookup", { token }),
   confirmPasswordReset: (token, password) => http.post("/api/auth/password-reset/confirm", { token, password }),
+  /** Enlace enviado al correo nuevo (Mi perfil → cambiar correo). */
+  confirmEmailChange: (token) => http.post("/api/auth/email-change/confirm", { token }),
 };

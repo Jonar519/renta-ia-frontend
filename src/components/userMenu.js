@@ -1,4 +1,4 @@
-import { getState } from "../state/store.js";
+import { getState, subscribe } from "../state/store.js";
 import { logout } from "../auth/session.js";
 import { ROLE_LABELS } from "../auth/roles.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
@@ -61,6 +61,17 @@ export function bindUserMenu(root) {
   const popup = menu.querySelector(".user-menu__popup");
   const items = [...menu.querySelectorAll('[role="menuitem"]')];
   const isOpen = () => !popup.hidden;
+
+  // Si cambia el nombre (Mi perfil) o la sesión se renueva, el botón se
+  // actualiza sin volver a pintar la pantalla. Al salir de esta pantalla (el
+  // menú ya no está en el documento), la suscripción se borra sola.
+  const unsubscribe = subscribe((state) => {
+    if (!menu.isConnected) return unsubscribe();
+    if (!state.user) return;
+    menu.querySelector(".user-menu__avatar").textContent = initials(state.user.name);
+    menu.querySelector(".user-menu__name").textContent = state.user.name ?? "";
+    menu.querySelector(".user-menu__role").textContent = ROLE_LABELS[state.user.role] ?? "";
+  });
 
   function focusItem(index) {
     items[(index + items.length) % items.length].focus();

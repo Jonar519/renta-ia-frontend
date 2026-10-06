@@ -75,6 +75,10 @@ export const invitationTokenFor = (email) => outboxTokenFor(email, "invitation",
 /** Último enlace para restablecer la contraseña enviado a ese correo. */
 export const resetTokenFor = (email) => outboxTokenFor(email, "password_reset", /#\/restablecer\/([\w.-]+)/);
 
+/** Último enlace para confirmar un correo nuevo (Mi perfil → cambiar correo). */
+export const emailChangeTokenFor = (email) =>
+  outboxTokenFor(email, "email_change_verification", /#\/confirmar-correo\/([\w.-]+)/);
+
 /** Cuántos correos de esa plantilla recibió ese correo. */
 export async function outboxCount(email, template) {
   const db = new pg.Client({ connectionString: DATABASE_URL });

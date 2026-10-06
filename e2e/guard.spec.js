@@ -136,7 +136,7 @@ test("menú de usuario: teclado, foco, clic fuera, Mi perfil y Salir", async ({ 
   await button.click();
   await page.getByRole("menuitem", { name: "Mi perfil" }).click();
   await expect(page.getByRole("heading", { name: "Mi perfil" })).toBeVisible();
-  await expect(page.locator(".profile-data")).toContainText("ana@example.com");
+  await expect(page.locator("#profile-email")).toHaveText("ana@example.com");
   await expectNoSeriousA11yViolations(page, testInfo, "perfil");
 
   // El mismo menú está en esta pantalla también: Salir.

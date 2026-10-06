@@ -1039,3 +1039,10 @@
     grid-column: 1;
   }
 }
+
+/* Mi perfil: el correo actual y el cambio pendiente, separados del formulario. */
+.profile-email-status {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
