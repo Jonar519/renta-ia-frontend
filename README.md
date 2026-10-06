@@ -1,7 +1,7 @@
 # renta-ia-frontend
 
-Interfaz web (SPA) del **Sistema de Gestión Documental Contable con IA**: registro
-y login, clientes, subida y seguimiento de documentos **en tiempo real**, conceptos
+Interfaz web (SPA) del **Sistema de Gestión Documental Contable con IA**: login
+(las cuentas se crean por invitación de un administrador), clientes, subida y seguimiento de documentos **en tiempo real**, conceptos
 tributarios extraídos por IA, alertas, resumen ejecutivo y chat sobre cada cliente.
 
 **JavaScript sin framework** con Vite solo para el build
