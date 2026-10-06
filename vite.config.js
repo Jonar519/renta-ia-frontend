@@ -132,6 +132,9 @@ export default defineConfig(({ mode }) => ({
     // Las fuentes nunca se incrustan como base64 dentro del CSS (bloquearían
     // su descarga y no se podrían precargar ni cachear aparte).
     assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined),
+    // Grafo de módulos para el presupuesto de JS por rol (scripts/check-bundle.mjs,
+    // que lo borra al terminar: no se publica).
+    manifest: true,
     rollupOptions: {
       output: {
         // Las vistas que viven en un "index.js" de su carpeta (clientDetail/)

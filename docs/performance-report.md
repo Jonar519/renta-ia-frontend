@@ -179,7 +179,10 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 | JS de entrada                            |  3,84 KB |       4 KB |
 | Cada chunk (salvo excepciones)           |  4,24 KB |       6 KB |
 | Chunk del detalle de cliente (excepción) |  8,32 KB |       9 KB |
-| JS total (todos los chunks)              | 45,91 KB |      46 KB |
+| JS del invitado (sin sesión)             | 21,70 KB |      24 KB |
+| JS del contador / asistente              | 40,34 KB |      46 KB |
+| JS del cliente del portal                | 39,72 KB |      46 KB |
+| JS del admin                             | 45,91 KB |      52 KB |
 | CSS total                                |  4,87 KB |       5 KB |
 | Fuentes (woff2)                          | 88,82 KB |      95 KB |
 | Fuentes de Google en `index.html`        |  ninguna | prohibidas |
@@ -201,3 +204,5 @@ La app reporta sus propias Web Vitals (`src/metrics/webVitals.js`), y un adminis
 - **Privacidad:** solo la ruta normalizada (`/clients/:id`) y una categoría de dispositivo. Sin usuario, IP, user-agent ni URL real. Se envía con `navigator.sendBeacon` como `text/plain`, que no dispara preflight CORS.
 - **Limitación:** en una SPA, LCP, CLS y TTFB se miden una vez por carga de página (la ruta inicial). Las navegaciones internas por hash no generan un LCP nuevo. INP sí cubre todas las interacciones de la sesión.
 - **No medido:** todavía no hay datos de usuarios reales en producción (la app no está desplegada). La vista funciona con los datos que genere el uso local.
+
+Fase 5 (aprobado antes de B10): **el tope de JS total se reemplaza por un tope por rol.** El total sumaba todos los chunks, incluidos los que un rol nunca descarga (las pantallas de admin para un contador, las de sesión para un invitado). El chequeo (`scripts/check-bundle.mjs`) suma, para cada rol, lo que puede llegar a descargar en el peor caso: el chunk de entrada, cada pantalla de la tabla de rutas de `src/main.js` a la que tiene acceso (con sus imports estáticos y diferidos), lo que se carga tras el load y sus Web Workers. El grafo sale del manifest de Vite (`build.manifest`), que el chequeo borra al terminar: no se publica (CI lo verifica). Un chunk que ningún rol descarga hace fallar el chequeo, y también una ruta con un acceso que el chequeo no reconoce. Se mantienen el JS de entrada (4 KB) y el tope por chunk (6 KB, excepción `clientDetail` 9 KB). pdf.js (B17, decisión D3) quedará fuera de los topes por rol, con su propio tope medido, solo si se descarga únicamente al abrir un documento.

@@ -25,8 +25,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       # "build" incluye el presupuesto de tamaño del bundle (scripts/check-bundle.mjs):
-      # falla si el JS de entrada, algún chunk, el CSS o las fuentes crecen de más.
+      # falla si el JS de entrada, algún chunk, el JS de algún rol, el CSS o las
+      # fuentes crecen de más.
       - run: npm run build
+      # El manifest de Vite (rutas de src/) solo sirve para medir: no se publica.
+      - name: El build no publica el manifest
+        run: test ! -e dist/.vite
 
       # Lighthouse CI sobre el build (perfil móvil simulado, 3 corridas) con
       # presupuestos: LCP < 2,5 s, CLS < 0,1, TBT < 200 ms (proxy de INP en
