@@ -27,7 +27,7 @@ const SEED_ADMIN = { email: "admin@example.com", password: "Password123!" };
 export const NEW_ACCOUNT_PASSWORD = "caballo correcto bateria grapa";
 
 /** Último enlace de invitación enviado a ese correo, leído de la bandeja simulada (email_outbox). */
-async function invitationTokenFor(email) {
+export async function invitationTokenFor(email) {
   const db = new pg.Client({ connectionString: DATABASE_URL });
   await db.connect();
   try {
