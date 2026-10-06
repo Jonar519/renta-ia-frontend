@@ -1,16 +1,19 @@
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
+import { createAccountByInvitation, loginThroughUi } from "./helpers.js";
 import { certificatePdf } from "./pdf.js";
 
 /**
  * Flujo crítico, de punta a punta y sin atajos por la API:
- * registro → crear cliente → subir documento → ver el cambio de estado EN
+ * cuenta invitada (sin registro público) → login → crear cliente → subir documento → ver el cambio de estado EN
  * TIEMPO REAL (WebSocket, sin recargar) → alerta → resumen → chat.
  * La IA es simulada (AI_PROVIDER=mock): sus respuestas llevan la marca
  * "[Respuesta simulada · ...]".
  */
 
-test("registro → cliente → documento en tiempo real → alerta → resumen → chat", async ({ page }, testInfo) => {
+test("invitación → login → cliente → documento en tiempo real → alerta → resumen → chat", async ({
+  page,
+}, testInfo) => {
   const cspViolations = [];
   await page.exposeFunction("__reportCsp", (v) => cspViolations.push(v));
   await page.addInitScript(() => {
@@ -19,19 +22,15 @@ test("registro → cliente → documento en tiempo real → alerta → resumen �
     );
   });
 
-  // --- Registro ---
+  // --- Cuenta por invitación + login ---
   await page.goto("/#/login");
   await expect(page.getByRole("heading", { name: "Renta IA" })).toBeVisible();
+  // Sin registro público: no hay pestaña ni botón "Crear cuenta".
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /crear cuenta/i })).toHaveCount(0);
   await expectNoSeriousA11yViolations(page, testInfo, "login");
 
-  await page.getByRole("tab", { name: "Crear cuenta" }).click();
-  const register = page.locator("#register-form");
-  await register.getByLabel("Nombre").fill("Contadora E2E");
-  await register.getByLabel("Correo").fill(`e2e-${Date.now()}@test.local`);
-  await register.getByLabel("Contraseña").fill("caballo correcto bateria grapa");
-  await register.getByRole("button", { name: "Crear cuenta" }).click();
-
-  await expect(page.getByRole("heading", { name: "Tus clientes" })).toBeVisible();
+  await loginThroughUi(page, await createAccountByInvitation({ name: "Contadora E2E" }));
   // El token de acceso nunca queda en localStorage.
   const storage = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   expect(storage).not.toMatch(/eyJ[\w-]+\.[\w-]+\./);

@@ -97,6 +97,9 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/renta_ia_e2e
+      # e2e/helpers.js crea cuentas por invitación: llama a la API y lee el
+      # enlace en email_outbox (correo simulado, el valor por defecto).
+      E2E_API_URL: http://localhost:4000
       REDIS_URL: redis://localhost:6379
       NODE_ENV: e2e
       AI_PROVIDER: mock
