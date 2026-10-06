@@ -51,3 +51,6 @@ export function renderLogin(root) {
     }
   });
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root) => renderLogin(root);

@@ -143,3 +143,6 @@ export async function renderPerformance(root) {
   bindRetry(tbody, load);
   await load();
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root) => renderPerformance(root);

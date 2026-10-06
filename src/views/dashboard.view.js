@@ -166,3 +166,6 @@ export function emptyClientsHtml() {
     "Cuando el contador al que apoyas registre clientes, aparecerán aquí."
   );
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root) => renderDashboard(root);

@@ -148,3 +148,6 @@ export async function renderClientDetail(root, clientId) {
   await Promise.all([loadClient(), documents.load(), alerts.load()]);
   syncLiveMode();
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root, params) => renderClientDetail(root, params.id);

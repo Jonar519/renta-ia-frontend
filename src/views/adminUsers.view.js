@@ -309,3 +309,6 @@ export async function renderAdminUsers(root) {
 
   await loadList();
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root) => renderAdminUsers(root);

@@ -46,3 +46,6 @@ export async function renderProfile(root) {
   bindRetry(container, load);
   await load();
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root) => renderProfile(root);

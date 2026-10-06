@@ -8,87 +8,40 @@ import { recheckRoute, registerRoute, setNoticeRenderer, setRouteGuard, startRou
 import { decideRoute } from "./auth/routeAccess.js";
 import { getState, hasSession, subscribe } from "./state/store.js";
 import { restoreSession } from "./auth/session.js";
-import { registerServiceWorker } from "./sw/registerSW.js";
 
 const app = document.getElementById("app");
 
 /**
  * Code-splitting por vista: cada vista es un chunk aparte que se descarga
  * solo al entrar a su ruta (el login no carga el código del detalle de
- * cliente). La función de render de la vista se llama sin await: pinta su
- * estructura de forma síncrona y sigue cargando datos en segundo plano, así
- * que la promesa se resuelve apenas la vista es visible.
+ * cliente). La vista se llama sin await: pinta su estructura de forma
+ * síncrona y sigue cargando datos en segundo plano, así que la promesa se
+ * resuelve apenas la vista es visible.
  */
-function lazyView(load, render) {
+function lazyView(load) {
   return async (params, { isStale }) => {
     const module = await load();
     if (isStale()) return; // el usuario ya navegó a otra ruta mientras se descargaba
-    render(module, params);
+    module.default(app, params);
   };
 }
 
-// Acceso de cada ruta (auth/routeAccess.js decide): auth = requiere sesión;
+// Rutas: [patrón, vista (import diferido; exporta por defecto (root, params)),
+// acceso]. auth/routeAccess.js decide con el acceso: auth = requiere sesión;
 // roles = solo esos roles; label = nombre para el aviso de rebote.
-registerRoute(
-  "/login",
-  lazyView(
-    () => import("./views/login.view.js"),
-    (m) => m.renderLogin(app)
-  ),
-  { auth: false }
-);
-registerRoute(
-  "/",
-  lazyView(
-    () => import("./views/dashboard.view.js"),
-    (m) => m.renderDashboard(app)
-  ),
-  { auth: true, label: "Clientes" }
-);
-registerRoute(
-  "/clients/:id",
-  lazyView(
-    () => import("./views/clientDetail/index.js"),
-    (m, params) => m.renderClientDetail(app, params.id)
-  ),
-  { auth: true, label: "Detalle de cliente" }
-);
-registerRoute(
-  "/performance",
-  lazyView(
-    () => import("./views/performance.view.js"),
-    (m) => m.renderPerformance(app)
-  ),
-  { auth: true, roles: ["admin"], label: "Rendimiento" }
-);
-registerRoute(
-  "/admin/users",
-  lazyView(
-    () => import("./views/adminUsers.view.js"),
-    (m) => m.renderAdminUsers(app)
-  ),
-  { auth: true, roles: ["admin"], label: "Usuarios" }
-);
-// "Completa tu cuenta" (pública): el enlace del correo trae el token; la
-// vista lo quita de la barra de direcciones (queda en "#/invitacion").
-for (const pattern of ["/invitacion/:token", "/invitacion"]) {
-  registerRoute(
-    pattern,
-    lazyView(
-      () => import("./views/completeAccount.view.js"),
-      (m, params) => m.renderCompleteAccount(app, params.token)
-    ),
-    { auth: false }
-  );
-}
-registerRoute(
-  "/profile",
-  lazyView(
-    () => import("./views/profile.view.js"),
-    (m) => m.renderProfile(app)
-  ),
-  { auth: true, label: "Mi perfil" }
-);
+const PUBLIC = { auth: false };
+const ADMIN = ["admin"];
+const ROUTES = [
+  ["/login", () => import("./views/login.view.js"), PUBLIC],
+  ["/invitacion/:token", () => import("./views/completeAccount.view.js"), PUBLIC],
+  ["/invitacion", () => import("./views/completeAccount.view.js"), PUBLIC],
+  ["/", () => import("./views/dashboard.view.js"), { auth: true, label: "Clientes" }],
+  ["/clients/:id", () => import("./views/clientDetail/index.js"), { auth: true, label: "Detalle de cliente" }],
+  ["/profile", () => import("./views/profile.view.js"), { auth: true, label: "Mi perfil" }],
+  ["/performance", () => import("./views/performance.view.js"), { auth: true, roles: ADMIN, label: "Rendimiento" }],
+  ["/admin/users", () => import("./views/adminUsers.view.js"), { auth: true, roles: ADMIN, label: "Usuarios" }],
+];
+for (const [pattern, load, access] of ROUTES) registerRoute(pattern, lazyView(load), access);
 
 // Guard: sin sesión → login; rol sin permiso o ruta inexistente → Clientes,
 // con un aviso que explica por qué. El rol se vuelve a comprobar cuando
@@ -141,9 +94,12 @@ startRouter();
 // Se cargan DESPUÉS del evento load y en tiempo ocioso para no competir con
 // la carga inicial (web-vitals pesa ~6 KB): sus PerformanceObserver usan
 // buffered: true, así que igual reciben LCP, FCP y TTFB ya ocurridos.
+// El Service Worker también se registra tras el load (nunca hizo falta para
+// la primera pintura): su código se descarga recién entonces y no pesa en el
+// chunk de entrada (presupuesto de 4 KB).
 window.addEventListener("load", () => {
+  import("./sw/registerSW.js").then((m) => m.registerServiceWorker());
   const start = () => import("./metrics/webVitals.js").then((m) => m.startWebVitals());
   if ("requestIdleCallback" in window) requestIdleCallback(start, { timeout: 3000 });
   else setTimeout(start, 0);
 });
-registerServiceWorker();

@@ -31,7 +31,8 @@ export function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", async () => {
+  // main.js lo importa (diferido) ya en el evento load; si aún no cargó, se espera.
+  const register = async () => {
     let registration;
     try {
       registration = await navigator.serviceWorker.register("/service-worker.js");
@@ -63,5 +64,7 @@ export function registerServiceWorker() {
 
     // Una pestaña abierta todo el día también debe enterarse de un despliegue.
     setInterval(() => registration.update().catch(() => {}), UPDATE_CHECK_MS);
-  });
+  };
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }
