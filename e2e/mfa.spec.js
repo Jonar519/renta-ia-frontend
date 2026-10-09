@@ -1,11 +1,6 @@
 import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import {
-  createAdminWithMfa,
-  inviteByApi,
-  invitationTokenFor,
-  NEW_ACCOUNT_PASSWORD,
-} from "./helpers.js";
+import { createAdminWithMfa, inviteByApi, invitationTokenFor, NEW_ACCOUNT_PASSWORD } from "./helpers.js";
 import { totpCode } from "./totp.js";
 
 /**

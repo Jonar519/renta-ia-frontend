@@ -14,7 +14,6 @@ import { certificatePdf } from "./pdf.js";
 test("invitación → login → cliente → documento en tiempo real → alerta → resumen → chat", async ({
   page,
 }, testInfo) => {
-
   // --- Cuenta por invitación + login ---
   await page.goto("/#/login");
   await expect(page.getByRole("heading", { name: "Inicia sesión", level: 1 })).toBeVisible();

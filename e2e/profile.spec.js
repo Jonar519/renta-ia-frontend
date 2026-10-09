@@ -1,11 +1,6 @@
 import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import {
-  createAccountByInvitation,
-  emailChangeTokenFor,
-  loginThroughUi,
-  NEW_ACCOUNT_PASSWORD,
-} from "./helpers.js";
+import { createAccountByInvitation, emailChangeTokenFor, loginThroughUi, NEW_ACCOUNT_PASSWORD } from "./helpers.js";
 
 /**
  * "Mi perfil" en Chrome (B11): editar nombre y teléfono, cambiar el correo

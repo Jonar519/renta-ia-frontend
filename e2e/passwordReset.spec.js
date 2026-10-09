@@ -1,11 +1,6 @@
 import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import {
-  createAccountByInvitation,
-  loginThroughUi,
-  outboxCount,
-  resetTokenFor,
-} from "./helpers.js";
+import { createAccountByInvitation, loginThroughUi, outboxCount, resetTokenFor } from "./helpers.js";
 
 /**
  * Recuperación de contraseña de punta a punta (B7): "Olvidé mi contraseña"
