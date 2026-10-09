@@ -179,11 +179,11 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 | JS de entrada                            |  3,84 KB |       4 KB |
 | Cada chunk (salvo excepciones)           |  4,24 KB |       6 KB |
 | Chunk del detalle de cliente (excepción) |  8,32 KB |       9 KB |
-| JS del invitado (sin sesión)             | 22,00 KB |      24 KB |
-| JS del contador / asistente              | 40,63 KB |      46 KB |
-| JS del cliente del portal                | 40,02 KB |      46 KB |
-| JS del admin                             | 46,21 KB |      52 KB |
-| CSS total                                |  5,16 KB |     5,5 KB |
+| JS del invitado (sin sesión)             | 23,31 KB |      24 KB |
+| JS del contador / asistente              | 46,36 KB |      48 KB |
+| JS del cliente del portal                | 45,75 KB |      48 KB |
+| JS del admin                             | 51,98 KB |      54 KB |
+| CSS total                                |  5,30 KB |     5,5 KB |
 | Fuentes (woff2)                          | 88,82 KB |      95 KB |
 | Fuentes de Google en `index.html`        |  ninguna | prohibidas |
 
@@ -210,3 +210,5 @@ Fase 5 (aprobado antes de B10): **el tope de JS total se reemplaza por un tope p
 Fase 5 (B10, aprobado): CSS total 5 → 5,5 KB (medido 5,15 KB) por el login rediseñado (disposición formulario + flujo de ejemplo y sus tarjetas). El login sumó 0,57 KB de JS a cada rol (chunk `login.view` 1,60 → 2,15 KB); invitado 22,29 / 24 KB.
 
 Fase 5 (B10, cambio pedido): el flujo de ejemplo del login se reemplazó por una composición de marca sin cifras (renglones y línea de margen solo con CSS). Se eliminaron el CSS y el JS del flujo: JS −0,29 KB por rol (invitado 22,00 KB), CSS 5,16 / 5,5 KB.
+
+Fase 5 (B12, aprobado): +2 KB a los topes de los roles con sesión (46 → 48 KB; admin 52 → 54 KB) por la foto de perfil: recortador con canvas 1,30 KB (se carga solo al elegir una foto), descarga con la sesión y caché como blob 0,55 KB, sección del perfil +0,64 KB y foto en el menú +0,32 KB. El invitado no cambia (23,31 / 24 KB). La CSP agrega `blob:` en `img-src` para mostrar la foto.
