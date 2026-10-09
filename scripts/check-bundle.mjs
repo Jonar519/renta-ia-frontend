@@ -63,7 +63,9 @@ const ROLE_BUDGETS = {
 // 17,79 KB (login), con sesión 20,75 KB (Clientes).
 const FIRST_LOAD_BUDGETS = {
   invitado: { route: "/login", session: false, limit: 19 * KB },
-  "con sesión": { route: "/", session: true, limit: 22 * KB },
+  // 22 → 23 KB en B15 (decisión escrita del usuario): el selector de densidad
+  // en Clientes (pantalla de llegada) mide 22,39 KB.
+  "con sesión": { route: "/", session: true, limit: 23 * KB },
 };
 
 // Única excepción al tope por chunk: el detalle de cliente (sus cuatro
