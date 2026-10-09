@@ -1129,3 +1129,89 @@
 .session__date {
   white-space: nowrap;
 }
+
+/* Densidad de las tablas (B15): preferencia de la cuenta (components/densityToggle.js). */
+.table-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.density {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+}
+.density__legend {
+  float: left;
+  padding: 0 8px;
+  color: var(--text-muted);
+}
+.density__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.density__option:has(input:checked) {
+  background: var(--bg-app);
+  font-weight: 500;
+}
+[data-density="compact"] .table th,
+[data-density="compact"] .table td {
+  padding: 6px 10px;
+}
+/* Tablas de cifras (totales, Rendimiento): se desplazan dentro de su región, no la página. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* Móvil: las listas (Clientes, Documentos, Conceptos, Usuarios) pasan a tarjetas;
+   cada valor lleva su encabezado (data-label). */
+@media (max-width: 640px) {
+  .table--stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .table--stack,
+  .table--stack tbody,
+  .table--stack tr,
+  .table--stack td {
+    display: block;
+    width: 100%;
+  }
+  .table--stack tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .table--stack tr:last-child {
+    border-bottom: none;
+  }
+  .table--stack td,
+  [data-density="compact"] .table--stack td {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 12px;
+    padding: 3px 0;
+    border: none;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+  .table--stack td[data-label]::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+  }
+  .table--stack td:not([data-label]) {
+    display: block;
+  }
+}

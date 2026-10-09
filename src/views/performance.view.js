@@ -1,5 +1,6 @@
 import { metricsApi } from "../api/metrics.api.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
+import { applyDensity } from "../components/densityToggle.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { bindRetry, emptyStateHtml, errorStateHtml, inRow, skeletonRowsHtml } from "../components/states.js";
 
@@ -87,11 +88,13 @@ export async function renderPerformance(root) {
               </select>
             </label>
           </form>
+          <div class="table-scroll" role="region" aria-label="Percentil 75 de cada métrica por ruta" tabindex="0">
           <table class="table" id="perf-table" aria-busy="true">
             <caption class="visually-hidden">Percentil 75 de cada métrica por ruta</caption>
             <thead><tr><th scope="col">Métrica</th><th scope="col">Ruta</th><th scope="col" class="num--end">p75</th><th scope="col">Evaluación</th><th scope="col" class="num--end">Muestras</th></tr></thead>
             <tbody>${loadingHtml}</tbody>
           </table>
+          </div>
           <p class="form-hint">
             INP (Interaction to Next Paint) reemplazó a FID como Core Web Vital en marzo de 2024: FID solo medía la espera
             antes de atender la primera interacción; INP mide la latencia completa de todas las interacciones. FID se
@@ -102,6 +105,7 @@ export async function renderPerformance(root) {
     </div>
   `;
   bindSidebarEvents(root);
+  applyDensity(); // sigue la preferencia de la cuenta (sin selector propio)
 
   const form = root.querySelector("#perf-filters");
   const table = root.querySelector("#perf-table");

@@ -1,6 +1,7 @@
 import { adminApi } from "../api/admin.api.js";
 import { ROLE_LABELS } from "../auth/roles.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
+import { bindDensityToggles, densityToggleHtml } from "../components/densityToggle.js";
 import { showErrorToast, showToast } from "../components/toast.js";
 import {
   bindRetry,
@@ -48,10 +49,10 @@ export function invitationRowHtml(inv) {
   const who = escapeHtml(inv.name);
   return `
     <tr data-user-id="${escapeHtml(inv.userId)}">
-      <td><span class="table__primary">${who}</span><p class="table__note">${escapeHtml(inv.email)}</p></td>
-      <td>${escapeHtml(ROLE_LABELS[inv.role] ?? inv.role)}${link}</td>
-      <td><span class="badge badge--${status.tone}">${status.text}</span></td>
-      <td>${expires}</td>
+      <td data-label="Persona"><span class="table__primary">${who}</span><p class="table__note">${escapeHtml(inv.email)}</p></td>
+      <td data-label="Rol">${escapeHtml(ROLE_LABELS[inv.role] ?? inv.role)}${link}</td>
+      <td data-label="Estado"><span class="badge badge--${status.tone}">${status.text}</span></td>
+      <td data-label="Vencimiento">${expires}</td>
       <td class="table__actions">
         <button type="button" class="btn btn--ghost btn--small" data-requires-network data-action="resend">Reenviar<span class="visually-hidden"> la invitación de ${who}</span></button>
         <button type="button" class="btn btn--ghost btn--small btn--danger" data-requires-network data-action="cancel">Cancelar<span class="visually-hidden"> la invitación de ${who}</span></button>
@@ -98,7 +99,8 @@ export async function renderAdminUsers(root) {
 
         <section class="panel" aria-labelledby="pending-title">
           <h2 id="pending-title" tabindex="-1">Invitaciones pendientes</h2>
-          <table class="table" id="invitations-table">
+          <div class="table-toolbar">${densityToggleHtml()}</div>
+          <table class="table table--stack" id="invitations-table">
             <caption class="visually-hidden">Cuentas invitadas que todavía no se activaron, con su estado y vencimiento</caption>
             <thead><tr>
               <th scope="col">Persona</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Vencimiento</th>
@@ -119,6 +121,7 @@ export async function renderAdminUsers(root) {
       </main>
     </div>`;
   bindSidebarEvents(root);
+  bindDensityToggles(root);
 
   const form = root.querySelector("#invite-form");
   const roleExtra = root.querySelector("#role-extra");

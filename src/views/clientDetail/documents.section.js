@@ -3,6 +3,7 @@ import { can } from "../../auth/permissions.js";
 import { documentsApi } from "../../api/documents.api.js";
 import { showErrorToast, showToast } from "../../components/toast.js";
 import { createPagedList } from "../../components/pagedList.js";
+import { bindDensityToggles, densityToggleHtml } from "../../components/densityToggle.js";
 import { bindRetry, emptyStateHtml, errorStateHtml, inRow, skeletonRowsHtml } from "../../components/states.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
 import { appendInBatches } from "../../utils/scheduling.js";
@@ -29,7 +30,7 @@ export function documentsPanelHtml() {
     <section class="panel panel--deferred">
       <h2>Conceptos tributarios extraídos</h2>
       <div id="concepts-totals"></div>
-      <table class="table" id="concepts-table">
+      <table class="table table--stack" id="concepts-table">
         <caption class="visually-hidden">Conceptos tributarios extraídos por la IA de los documentos del cliente</caption>
         <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col" class="num--end">Monto</th><th scope="col">Año</th></tr></thead>
         <tbody>${conceptsLoadingHtml}</tbody>
@@ -41,7 +42,8 @@ export function documentsPanelHtml() {
 
     <section class="panel panel--deferred">
       <h2>Documentos</h2>
-      <table class="table" id="documents-table">
+      <div class="table-toolbar">${densityToggleHtml()}</div>
+      <table class="table table--stack" id="documents-table">
         <caption class="visually-hidden">Documentos subidos y su estado de procesamiento</caption>
         <thead><tr>
           <th scope="col">Archivo</th><th scope="col">Tipo</th><th scope="col">Estado</th><th scope="col">Subido</th>
@@ -86,23 +88,23 @@ function documentRowHtml(d) {
       : "";
   return `
     <tr data-document-id="${escapeHtml(d.id)}">
-      <td class="table__primary">${escapeHtml(d.originalName)}</td>
-      <td>${DOC_TYPE_LABELS[d.docType] || escapeHtml(d.docType)}</td>
-      <td>
+      <td class="table__primary" data-label="Archivo">${escapeHtml(d.originalName)}</td>
+      <td data-label="Tipo">${DOC_TYPE_LABELS[d.docType] || escapeHtml(d.docType)}</td>
+      <td data-label="Estado">
         <span class="badge badge--${status.tone}${d.status === "processing" ? " ai-processing" : ""}">${escapeHtml(status.text)}</span>
         ${status.detail ? `<p class="table__note">${escapeHtml(status.detail)}</p>` : ""}
       </td>
-      <td class="num">${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
+      <td class="num" data-label="Subido">${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
       <td>${action}</td>
     </tr>`;
 }
 
 const conceptRowHtml = (c) => `
   <tr>
-    <td class="table__primary">${CONCEPT_LABELS[c.conceptType] || escapeHtml(c.conceptType)}</td>
-    <td>${escapeHtml(c.description || "—")}</td>
-    <td class="num num--end">${formatCOP(c.amount)}</td>
-    <td class="num">${escapeHtml(String(c.periodYear))}</td>
+    <td class="table__primary" data-label="Concepto">${CONCEPT_LABELS[c.conceptType] || escapeHtml(c.conceptType)}</td>
+    <td data-label="Descripción">${escapeHtml(c.description || "—")}</td>
+    <td class="num num--end" data-label="Monto">${formatCOP(c.amount)}</td>
+    <td class="num" data-label="Año">${escapeHtml(String(c.periodYear))}</td>
   </tr>`;
 
 const TOTAL_COLUMNS = ["gross_income", "withholding", "deduction", "pension_contribution", "health_contribution"];
@@ -110,6 +112,7 @@ const TOTAL_COLUMNS = ["gross_income", "withholding", "deduction", "pension_cont
 function totalsHtml(rows) {
   if (rows.length === 0) return "";
   return `
+    <div class="table-scroll" role="region" aria-label="Totales por año gravable" tabindex="0">
     <table class="table table--compact table--totals">
       <caption>Totales por año gravable</caption>
       <thead><tr><th scope="col">Año</th>${TOTAL_COLUMNS.map((t) => `<th scope="col">${CONCEPT_LABELS[t]}</th>`).join("")}</tr></thead>
@@ -119,7 +122,8 @@ function totalsHtml(rows) {
             `<tr><th scope="row" class="num">${r.periodYear}</th>${TOTAL_COLUMNS.map((t) => `<td class="num num--end">${formatCOP(r.totals[t] ?? 0)}</td>`).join("")}</tr>`
         )
         .join("")}</tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 /**
@@ -130,6 +134,7 @@ function totalsHtml(rows) {
  */
 export function createDocumentsSection(root, clientId, { signal, onProcessed = () => {} }) {
   const docsTbody = root.querySelector("#documents-tbody");
+  bindDensityToggles(root);
   const conceptsTable = root.querySelector("#concepts-table");
   const conceptsTbody = conceptsTable.querySelector("tbody");
   const conceptsTotals = root.querySelector("#concepts-totals");

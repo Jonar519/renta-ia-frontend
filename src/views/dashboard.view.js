@@ -1,6 +1,7 @@
 import { clientsApi } from "../api/clients.api.js";
 import { showErrorToast, showToast } from "../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
+import { bindDensityToggles, densityToggleHtml } from "../components/densityToggle.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { getState } from "../state/store.js";
 import { createPagedList } from "../components/pagedList.js";
@@ -47,7 +48,8 @@ export async function renderDashboard(root) {
         </section>
 
         <section class="panel">
-          <table class="table">
+          <div class="table-toolbar">${densityToggleHtml()}</div>
+          <table class="table table--stack">
             <caption class="visually-hidden">Tus clientes contribuyentes</caption>
             <thead>
               <tr>
@@ -73,6 +75,7 @@ export async function renderDashboard(root) {
   `;
 
   bindSidebarEvents(root);
+  bindDensityToggles(root);
 
   // Asistentes y usuarios de portal no crean clientes (la API también lo impide).
   if (can("client.create")) {
@@ -123,11 +126,11 @@ export async function renderDashboard(root) {
 
   const clientRowHtml = (c) => `
     <tr>
-      <td class="table__primary">${escapeHtml(c.fullName)}</td>
-      <td class="num">${escapeHtml(c.documentNumber)}</td>
-      <td>${escapeHtml(c.email || "—")}</td>
-      ${isAdmin ? `<td>${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
-      <td class="num">${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
+      <td class="table__primary" data-label="Cliente">${escapeHtml(c.fullName)}</td>
+      <td class="num" data-label="Documento">${escapeHtml(c.documentNumber)}</td>
+      <td data-label="Correo">${escapeHtml(c.email || "—")}</td>
+      ${isAdmin ? `<td data-label="Contador">${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
+      <td class="num" data-label="Creado">${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
       <td><a class="link" href="#/clients/${escapeHtml(c.id)}">Ver detalle<span class="visually-hidden"> de ${escapeHtml(c.fullName)}</span></a></td>
     </tr>`;
 
