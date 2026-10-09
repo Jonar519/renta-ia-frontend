@@ -214,7 +214,7 @@ export async function renderSecurity(root) {
                   <input id="mfa-off-code" name="code" required autocomplete="one-time-code" maxlength="24" />
                 </div>
                 ${formError("mfa-disable-error")}
-                <div class="form-actions"><button type="submit" class="btn btn--danger">Desactivar</button></div>
+                <div class="form-actions"><button type="submit" class="btn btn--ghost btn--danger">Desactivar</button></div>
               </form>
             </details>`
       }`;

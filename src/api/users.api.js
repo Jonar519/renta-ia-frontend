@@ -12,4 +12,8 @@ export const usersApi = {
   sessions: () => http.get("/api/users/me/sessions"),
   closeSession: (id) => http.delete(`/api/users/me/sessions/${encodeURIComponent(id)}`),
   closeOtherSessions: () => http.delete("/api/users/me/sessions"),
+  // Tus datos (B14).
+  exportData: (password) => http.post("/api/users/me/export", { password }),
+  deletionStatus: () => http.get("/api/users/me/deletion"),
+  deleteAccount: (password, code) => http.post("/api/users/me/deletion", { password, code }),
 };

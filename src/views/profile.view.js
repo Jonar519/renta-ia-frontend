@@ -5,6 +5,7 @@ import { paintAvatar } from "../components/userMenu.js";
 import { avatarApi } from "../api/avatar.api.js";
 import { bindRetry, errorStateHtml, setPending, skeletonBlockHtml } from "../components/states.js";
 import { bindPasswordFields, passwordFieldHtml, PASSWORD_HINT } from "../components/passwordField.js";
+import { mountAccountData } from "./accountData.js";
 import { showToast } from "../components/toast.js";
 import { getState, setAuth } from "../state/store.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
@@ -145,9 +146,11 @@ export async function renderProfile(root) {
           ${errorBox("password-error")}
           <div class="form-actions"><button type="submit" class="btn btn--primary">Cambiar contraseña</button></div>
         </form>
-      </section>`;
+      </section>
+      <div id="account-data"></div>`;
     bindPasswordFields(container);
     bindPhoto(me);
+    mountAccountData(container.querySelector("#account-data"), me);
 
     bindForm(container.querySelector("#profile-form"), "Guardando…", async (data) => {
       const updated = await usersApi.update({ name: data.get("name").trim(), phone: data.get("phone").trim() });
