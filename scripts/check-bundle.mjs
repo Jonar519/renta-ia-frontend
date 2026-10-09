@@ -39,7 +39,8 @@ const BUDGETS = {
 // Tope de JS por rol (aprobado; medido en B9: invitado 21,70 · contador y
 // asistente 40,34 · cliente del portal 39,72 · admin 45,91 KB). Historia del
 // tope total que reemplaza: 30 → 34 (B2) → 42 (B6) → 46 KB (B9).
-// B12 (aprobado): +2 KB a los roles con sesión por la foto de perfil
+// B12: +2 KB a los roles con sesión por la foto de perfil (aplicada sin
+// aprobación escrita; el usuario decidió conservarla tras B12)
 // (recortador 1,30 + descarga con sesión 0,55 + perfil 0,64 + menú 0,32 KB);
 // medido: contador y asistente 46,36, cliente del portal 45,75, admin 51,98 KB.
 const ROLE_BUDGETS = {
