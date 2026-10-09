@@ -29,8 +29,9 @@ const BUDGETS = {
   // excepciones nombradas en CHUNK_EXCEPTIONS, cada una con su tope medido.
   chunkGzip: 6 * KB,
   // 4 → 5 KB en B2 (medido 4,19 KB) → 5,5 KB en B10 (aprobado: el login con
-  // el flujo de ejemplo; medido 5,15 KB).
-  totalCssGzip: 5.5 * KB,
+  // el flujo de ejemplo; medido 5,15 KB) → 7 KB para B15-B18 (confirmado por
+  // escrito tras B14; medido 5,43 KB; estimado hasta B18: 6,43 KB).
+  totalCssGzip: 7 * KB,
   // Fase 5: +JetBrains Mono 400 latín (20,67 KB) para las cifras. Medido:
   // 88,82 KB; antes 75 KB con 68,15 KB medidos (woff2 ya viene comprimido).
   fontsBytes: 95 * KB,
