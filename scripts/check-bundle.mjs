@@ -50,6 +50,16 @@ const ROLE_BUDGETS = {
   admin: 54 * KB,
 };
 
+// PRIMERA CARGA (aprobado antes de B13; estricto, como el peor caso por
+// rol): lo que se descarga al abrir la app en la pantalla de llegada, sin
+// tocar nada más: entrada + sus imports + la pantalla + lo que main.js carga
+// tras el load (con sesión, también el tiempo real). Medido en B12: invitado
+// 17,79 KB (login), con sesión 20,75 KB (Clientes).
+const FIRST_LOAD_BUDGETS = {
+  invitado: { route: "/login", session: false, limit: 19 * KB },
+  "con sesión": { route: "/", session: true, limit: 22 * KB },
+};
+
 // Única excepción al tope por chunk: el detalle de cliente (sus cuatro
 // pestañas: documentos con sus Web Workers, alertas, resumen y chat). Medido:
 // 8,32 KB en B6 (7,24 KB al fijar el presupuesto original de 10 KB).
@@ -149,6 +159,17 @@ for (const [role, audiences] of Object.entries(AUDIENCES)) {
   roleFiles[role] = files;
 }
 
+const firstLoadFiles = {};
+for (const [label, { route: pattern, session }] of Object.entries(FIRST_LOAD_BUDGETS)) {
+  const route = routes.find((r) => r.pattern === pattern);
+  if (!route) throw new Error(`Primera carga (${label}): la ruta ${pattern} no está en src/main.js`);
+  const files = new Set();
+  reach(entryKey, files);
+  for (const key of afterLoad) if (session || !SESSION_ONLY.has(key)) reach(key, files);
+  reach(route.key, files);
+  firstLoadFiles[label] = files;
+}
+
 const measured = {
   entryJsGzip: gzipSize(entryFile),
   chunkGzip: biggestRegular?.size ?? 0,
@@ -176,6 +197,14 @@ for (const chunk of chunks) {
   // Se listan las excepciones (siempre) y cualquier chunk que exceda su tope.
   if (exception || !ok)
     line(ok, `chunk ${chunk.name}`, chunk.size, chunk.limit, exception ? " (excepción documentada)" : "");
+}
+
+console.log("JS de la primera carga (pantalla de llegada):");
+for (const [label, { route, limit }] of Object.entries(FIRST_LOAD_BUDGETS)) {
+  const value = [...firstLoadFiles[label]].reduce((s, f) => s + gzipSize(path.join(DIST, f)), 0);
+  const ok = value <= limit;
+  failed ||= !ok;
+  line(ok, `${label} (#${route})`, value, limit, ` (${firstLoadFiles[label].size} archivos)`);
 }
 
 console.log("JS por rol (peor caso: todas sus pantallas):");
