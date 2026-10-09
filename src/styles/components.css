@@ -313,8 +313,10 @@
   display: flex;
   gap: 10px;
 }
+/* min-width: 0: sin esto el campo no se achica y empuja el botón fuera en móvil. */
 .chat-form input {
   flex: 1;
+  min-width: 0;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
@@ -1197,21 +1199,50 @@
   .table--stack tr:last-child {
     border-bottom: none;
   }
+  /* La etiqueta va en el margen izquierdo y el contenido (que puede tener varias
+     piezas: fecha y "vence en…", nombre y correo) fluye junto en la columna del valor. */
   .table--stack td,
   [data-density="compact"] .table--stack td {
-    display: grid;
-    grid-template-columns: 7.5rem minmax(0, 1fr);
-    gap: 12px;
-    padding: 3px 0;
+    position: relative;
+    padding: 3px 0 3px 8.25rem;
     border: none;
     overflow-wrap: anywhere;
     text-align: left;
   }
   .table--stack td[data-label]::before {
     content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 7.5rem;
     color: var(--text-muted);
+    /* La etiqueta es texto, aunque la celda sea una cifra (.num usa la fuente monoespaciada). */
+    font: 400 var(--fs-sm) var(--font-sans);
+  }
+  /* En una tarjeta hay menos ancho: las cifras largas (fechas con hora) pueden partirse. */
+  .table--stack .num {
+    white-space: normal;
   }
   .table--stack td:not([data-label]) {
-    display: block;
+    padding-left: 0;
+  }
+  /* Barra superior (admin: tres enlaces + menú de la cuenta): los enlaces pasan a
+     una segunda fila, con su propio desplazamiento si no caben. */
+  .sidebar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .sidebar__nav {
+    order: 3;
+    flex: 1 0 100%; /* layout.css le da flex: 1; sin la base 100% no baja de fila */
+    overflow-x: auto;
+  }
+  /* Pestañas del detalle de cliente: nunca más anchas que la pantalla. */
+  .tabs {
+    overflow-x: auto;
+  }
+}
+@media (max-width: 480px) {
+  .tab {
+    margin-right: 16px;
   }
 }

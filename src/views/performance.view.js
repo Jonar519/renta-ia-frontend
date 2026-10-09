@@ -1,6 +1,6 @@
 import { metricsApi } from "../api/metrics.api.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
-import { applyDensity } from "../components/densityToggle.js";
+import { bindDensityToggles } from "../components/densityToggle.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { bindRetry, emptyStateHtml, errorStateHtml, inRow, skeletonRowsHtml } from "../components/states.js";
 
@@ -105,7 +105,7 @@ export async function renderPerformance(root) {
     </div>
   `;
   bindSidebarEvents(root);
-  applyDensity(); // sigue la preferencia de la cuenta (sin selector propio)
+  bindDensityToggles(root); // sigue la preferencia de la cuenta (sin selector propio)
 
   const form = root.querySelector("#perf-filters");
   const table = root.querySelector("#perf-table");

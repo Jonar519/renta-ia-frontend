@@ -1,5 +1,5 @@
 import { http } from "../api/http.js";
-import { getState, setAuth } from "../state/store.js";
+import { getState, setAuth, subscribe } from "../state/store.js";
 import { showErrorToast } from "./toast.js";
 
 /**
@@ -39,9 +39,23 @@ function show(value) {
   for (const input of document.querySelectorAll(".density input")) input.checked = input.value === value;
 }
 
+// La pantalla se pinta con la pista local de la sesión y el usuario real llega
+// después (al recuperar la sesión del servidor): selectores y página siguen
+// cada cambio del usuario de la sesión, no solo el valor del momento de pintar.
+let subscribed = false;
+function syncWithSession() {
+  applyDensity();
+  const value = currentDensity();
+  for (const input of document.querySelectorAll(".density input")) input.checked = input.value === value;
+}
+
 /** Aplica la preferencia y enlaza los selectores dentro de `root`. Guarda en el backend; si falla, vuelve atrás. */
 export function bindDensityToggles(root) {
-  applyDensity();
+  if (!subscribed) {
+    subscribe(syncWithSession);
+    subscribed = true;
+  }
+  syncWithSession();
   for (const fieldset of root.querySelectorAll(".density")) {
     fieldset.addEventListener("change", async (event) => {
       const value = event.target.value;
