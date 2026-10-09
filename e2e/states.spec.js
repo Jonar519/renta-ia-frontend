@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations, markNoReload, signUp } from "./helpers.js";
+import { markNoReload, signUp } from "./helpers.js";
 
 /**
  * Estados explícitos de las vistas (docs/ui-states.md) en un navegador real:
@@ -11,7 +11,6 @@ import { collectCspViolations, markNoReload, signUp } from "./helpers.js";
 const isClientsList = (request) => request.method() === "GET" && new URL(request.url()).pathname === "/api/clients";
 
 test("skeleton → error → Reintentar (sin recargar) → datos", async ({ page }, testInfo) => {
-  const csp = await collectCspViolations(page);
   await signUp(page);
   // Un cliente, para que el reintento tenga algo que pintar.
   await page.getByRole("button", { name: "Nuevo cliente" }).click();
@@ -46,7 +45,6 @@ test("skeleton → error → Reintentar (sin recargar) → datos", async ({ page
   await expect(page.getByRole("cell", { name: "Cliente Reintento", exact: true })).toBeVisible();
   await assertNoReload();
   expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(1);
-  expect(csp, "Violaciones de la CSP").toEqual([]);
 });
 
 test("vacío orientativo para una cuenta nueva", async ({ page }, testInfo) => {

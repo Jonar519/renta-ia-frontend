@@ -1,7 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
 import {
-  collectCspViolations,
   createAdminWithMfa,
   inviteByApi,
   invitationTokenFor,
@@ -19,7 +18,6 @@ import { totpCode } from "./totp.js";
 test("admin nuevo: tras activar su cuenta solo puede estar en Seguridad hasta activar MFA", async ({
   page,
 }, testInfo) => {
-  const csp = await collectCspViolations(page);
   const email = await inviteByApi({ name: "Admin Obligada", role: "admin" });
   await page.goto(`/#/invitacion/${await invitationTokenFor(email)}`);
   await expect(page.getByText("Luego activarás la verificación en dos pasos")).toBeVisible();
@@ -61,11 +59,9 @@ test("admin nuevo: tras activar su cuenta solo puede estar en Seguridad hasta ac
   // Ya puede usar el resto de la app con la MISMA sesión.
   await page.getByRole("link", { name: "Usuarios" }).click();
   await expect(page.getByRole("heading", { name: "Usuarios", level: 1 })).toBeVisible();
-  expect(csp).toEqual([]);
 });
 
 test("login en dos pasos: código incorrecto, luego un código de recuperación", async ({ page }, testInfo) => {
-  const csp = await collectCspViolations(page);
   const admin = await createAdminWithMfa({ name: "Admin Dos Pasos" });
   await page.goto("/#/login");
   const form = page.locator("#login-form");
@@ -88,5 +84,4 @@ test("login en dos pasos: código incorrecto, luego un código de recuperación"
   await page.getByLabel("Código de recuperación").fill(admin.recoveryCodes[0]);
   await page.getByRole("button", { name: "Verificar" }).click();
   await expect(page.getByRole("heading", { name: "Tus clientes" })).toBeVisible();
-  expect(csp).toEqual([]);
 });

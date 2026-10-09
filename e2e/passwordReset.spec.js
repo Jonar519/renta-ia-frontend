@@ -1,7 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
 import {
-  collectCspViolations,
   createAccountByInvitation,
   loginThroughUi,
   outboxCount,
@@ -38,7 +37,6 @@ test("olvidé mi contraseña → enlace del correo → contraseña nueva; se cie
   await loginThroughUi(other, account);
 
   // Pedir el enlace. La pantalla dice lo mismo para un correo que no existe.
-  const csp = await collectCspViolations(page);
   const forExisting = await requestReset(page, account.email);
   await expectNoSeriousA11yViolations(page, testInfo, "olvide-mi-contrasena-enviado");
   const forMissing = await requestReset(page, `nadie-${Date.now()}@test.local`);
@@ -76,7 +74,6 @@ test("olvidé mi contraseña → enlace del correo → contraseña nueva; se cie
   await expect(invalid).toBeVisible();
   await expect(invalid.getByRole("link", { name: "Pedir un enlace nuevo" })).toBeVisible();
   await expectNoSeriousA11yViolations(page, testInfo, "enlace-restablecer-invalido");
-  expect(csp).toEqual([]);
 });
 
 test("dentro del minuto, pedir otro enlace no manda otro correo (la pantalla responde igual)", async ({ page }) => {

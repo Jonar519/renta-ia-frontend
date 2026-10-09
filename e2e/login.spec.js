@@ -1,6 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations } from "./helpers.js";
 
 /**
  * Login rediseñado (B10) en Chrome: formulario + composición de marca, en
@@ -12,7 +11,6 @@ const noHorizontalScroll = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
 test("escritorio: la composición de marca a la izquierda, el formulario a la derecha", async ({ page }, testInfo) => {
-  const csp = await collectCspViolations(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/#/login");
   const form = page.locator("#login-form");
@@ -42,7 +40,6 @@ test("escritorio: la composición de marca a la izquierda, el formulario a la de
   expect(violet).toEqual([]);
 
   await expectNoSeriousA11yViolations(page, testInfo, "login-escritorio");
-  expect(csp).toEqual([]);
 });
 
 test("móvil: primero el formulario, sin desborde horizontal; 'Mostrar contraseña' funciona", async ({

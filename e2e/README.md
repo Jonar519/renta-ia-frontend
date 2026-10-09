@@ -7,6 +7,11 @@ real** (WebSocket, sin recargar) → alerta → resumen → chat. En tres pantal
 corre **axe** (WCAG 2.1 A/AA) y falla ante violaciones _serious_ o _critical_;
 además falla si hay alguna violación de la CSP.
 
+**Todas** las pruebas importan `test` de `e2e/fixtures.js`: un fixture automático
+vigila la CSP en cada página (también en los contextos que la prueba abre aparte)
+y al final exige cero violaciones, informando directiva, archivo:línea y pantalla.
+`csp.spec.js` prueba que el vigilante detecta violaciones provocadas a propósito.
+
 La IA es **simulada** (`AI_PROVIDER=mock`, solo para pruebas; la API se niega a
 arrancar con él si `NODE_ENV=production`). Lo que depende de Anthropic/Voyage
 reales se prueba a mano (ver la lista del README raíz).

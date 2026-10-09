@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations, createAdminWithMfa, loginThroughUi } from "./helpers.js";
+import { createAdminWithMfa, loginThroughUi } from "./helpers.js";
 
 /**
  * Guard de ruta por rol, menú de usuario y sidebar sin conexión, en Chrome.
@@ -33,7 +33,6 @@ function watchPerformanceChunk(page) {
 test("un asistente que escribe la URL de Rendimiento rebota a Clientes con un aviso claro", async ({
   page,
 }, testInfo) => {
-  const csp = await collectCspViolations(page);
   const chunk = watchPerformanceChunk(page);
   await login(page, USERS.assistant);
   await expect(page.getByRole("link", { name: "Rendimiento" })).toHaveCount(0); // ni siquiera ve el enlace
@@ -69,7 +68,6 @@ test("un asistente que escribe la URL de Rendimiento rebota a Clientes con un av
   await expect(page.getByRole("alert")).toHaveCount(0);
 
   expect(chunk, "el código de la vista prohibida no se descargó").toEqual([]);
-  expect(csp).toEqual([]);
 });
 
 test("un contador también rebota; el admin sí entra", async ({ browser }) => {

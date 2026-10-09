@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations, createAccountByInvitation, loginThroughUi } from "./helpers.js";
+import { createAccountByInvitation, loginThroughUi } from "./helpers.js";
 
 /**
  * Foto de perfil en Chrome (B12): recorte real con canvas (flechas, zoom),
@@ -33,7 +33,6 @@ async function openProfile(page) {
 test("elegir, encuadrar y guardar la foto; se ve en el perfil y en el menú, y se puede quitar", async ({
   page,
 }, testInfo) => {
-  const csp = await collectCspViolations(page);
   await loginThroughUi(page, await createAccountByInvitation({ name: "Foto E2E" }));
   await openProfile(page);
   const menuAvatar = page.locator("[data-user-menu] .user-menu__avatar");
@@ -83,7 +82,6 @@ test("elegir, encuadrar y guardar la foto; se ve en el perfil y en el menú, y s
   await expect(page.locator(".toast", { hasText: "Quitaste tu foto" })).toBeVisible();
   await expect(page.locator("#profile-photo img")).toHaveCount(0);
   await expect(page.locator("[data-user-menu] .user-menu__avatar")).toHaveText("FE");
-  expect(csp).toEqual([]);
 });
 
 test("móvil: el recorte cabe sin desborde horizontal", async ({ page }) => {

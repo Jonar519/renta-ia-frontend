@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
 import { createAccountByInvitation, loginThroughUi } from "./helpers.js";
 import { certificatePdf } from "./pdf.js";
@@ -14,13 +14,6 @@ import { certificatePdf } from "./pdf.js";
 test("invitación → login → cliente → documento en tiempo real → alerta → resumen → chat", async ({
   page,
 }, testInfo) => {
-  const cspViolations = [];
-  await page.exposeFunction("__reportCsp", (v) => cspViolations.push(v));
-  await page.addInitScript(() => {
-    document.addEventListener("securitypolicyviolation", (e) =>
-      window.__reportCsp(`${e.violatedDirective} ${e.blockedURI}`)
-    );
-  });
 
   // --- Cuenta por invitación + login ---
   await page.goto("/#/login");
@@ -84,5 +77,4 @@ test("invitación → login → cliente → documento en tiempo real → alerta 
   await expect(page.locator("#chat-log")).toContainText("Respuesta simulada", { timeout: 30_000 });
 
   await expectNoSeriousA11yViolations(page, testInfo, "detalle-cliente");
-  expect(cspViolations, "Violaciones de la Content-Security-Policy").toEqual([]);
 });

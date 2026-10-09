@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
-import { collectCspViolations, createAdminWithMfa, invitationTokenFor, loginThroughUi } from "./helpers.js";
+import { createAdminWithMfa, invitationTokenFor, loginThroughUi } from "./helpers.js";
 
 /**
  * Alta por invitación de punta a punta, por la interfaz (B6): el admin
@@ -31,7 +31,6 @@ test("el admin invita y la persona activa su cuenta; el token nunca llega al nav
   page,
   browser,
 }, testInfo) => {
-  const csp = await collectCspViolations(page);
   // Todo lo que el navegador del admin recibe de la API.
   const adminBodies = [];
   page.on("response", async (res) => {
@@ -56,7 +55,6 @@ test("el admin invita y la persona activa su cuenta; el token nunca llega al nav
 
   // --- La persona invitada, en otro navegador ---
   const invitee = await (await browser.newContext()).newPage();
-  const inviteeCsp = await collectCspViolations(invitee);
   await invitee.goto(`/#/invitacion/${token}`);
   await expect(invitee.getByRole("heading", { name: "Completa tu cuenta" })).toBeVisible();
   await expect(invitee.getByText("Invitada E2E")).toBeVisible();
@@ -79,13 +77,11 @@ test("el admin invita y la persona activa su cuenta; el token nunca llega al nav
   await invitee.goto(`/#/invitacion/${token}`);
   await expect(invitee.getByRole("alert")).toContainText("no es válido o ya venció");
   await expectNoSeriousA11yViolations(invitee, testInfo, "enlace-invalido");
-  expect(inviteeCsp).toEqual([]);
 
   // Del lado del admin, la cuenta activada ya no está pendiente.
   await page.reload();
   await openUsers(page);
   await expect(row(page, email)).toHaveCount(0);
-  expect(csp).toEqual([]);
 });
 
 test("reenviar invalida el enlace anterior; cancelar pide confirmación y devuelve el foco", async ({

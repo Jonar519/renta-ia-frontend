@@ -1,7 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { expectNoSeriousA11yViolations } from "./a11y.js";
 import {
-  collectCspViolations,
   createAccountByInvitation,
   emailChangeTokenFor,
   loginThroughUi,
@@ -23,7 +22,6 @@ async function openProfile(page) {
 }
 
 test("nombre y teléfono; cambio de correo confirmado desde el enlace", async ({ page, browser }, testInfo) => {
-  const csp = await collectCspViolations(page);
   const account = await createAccountByInvitation({ name: "Perfil E2E" });
   await loginThroughUi(page, account);
   await openProfile(page);
@@ -61,7 +59,6 @@ test("nombre y teléfono; cambio de correo confirmado desde el enlace", async ({
 
   await page.reload();
   await expect(page.locator("#profile-email")).toHaveText(target);
-  expect(csp).toEqual([]);
 });
 
 test("cambiar la contraseña cierra la sesión del otro dispositivo", async ({ page, browser }) => {
