@@ -43,12 +43,16 @@ const BUDGETS = {
 // aprobación escrita; el usuario decidió conservarla tras B12)
 // (recortador 1,30 + descarga con sesión 0,55 + perfil 0,64 + menú 0,32 KB);
 // medido: contador y asistente 46,36, cliente del portal 45,75, admin 51,98 KB.
+// B13-B18 (confirmado por escrito por el usuario antes de B14): peor caso
+// estimado por bloque + ~2 KB de margen. Medido tras B13: invitado 23,35 ·
+// contador y asistente 47,79 · cliente del portal 47,18 · admin 53,40 KB.
+// Estimación hasta B18: 23,35 · 55,2 · 55,2 · 53,1 · 60,8 KB.
 const ROLE_BUDGETS = {
   invitado: 24 * KB,
-  contador: 48 * KB,
-  asistente: 48 * KB,
-  "cliente del portal": 48 * KB,
-  admin: 54 * KB,
+  contador: 57 * KB,
+  asistente: 57 * KB,
+  "cliente del portal": 55 * KB,
+  admin: 63 * KB,
 };
 
 // PRIMERA CARGA (aprobado antes de B13; estricto, como el peor caso por
