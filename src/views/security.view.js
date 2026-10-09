@@ -5,9 +5,11 @@ import { bindPasswordFields, passwordFieldHtml } from "../components/passwordFie
 import { showToast } from "../components/toast.js";
 import { getState, setAuth } from "../state/store.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
+import { mountActiveSessions } from "./activeSessions.js";
 
 /**
- * "Seguridad": verificación en dos pasos (TOTP) de la propia cuenta.
+ * "Seguridad": verificación en dos pasos (TOTP) de la propia cuenta y sus
+ * sesiones activas (B13; activeSessions.js).
  *
  *  Desactivada → (contraseña) → QR + clave manual → (código) → códigos de
  *  recuperación (UNA vez) → Activa.
@@ -48,6 +50,12 @@ function markMfaEnabled() {
   document.querySelector(".route-notice")?.remove(); // "primero debes activar…" ya no aplica
 }
 
+/** Admin sin MFA: la API solo le permite activarlo; las sesiones se muestran después. */
+const mfaPending = () => {
+  const { user } = getState();
+  return user?.role === "admin" && user.mfaEnabled === false;
+};
+
 export async function renderSecurity(root) {
   root.innerHTML = `
     <div class="app-shell">
@@ -56,17 +64,26 @@ export async function renderSecurity(root) {
         <header class="main__header">
           <div>
             <h1 class="page-title">Seguridad</h1>
-            <p class="page-subtitle">Protege tu cuenta con un segundo paso al iniciar sesión.</p>
+            <p class="page-subtitle">Protege tu cuenta con un segundo paso al iniciar sesión y revisa dónde está abierta.</p>
           </div>
         </header>
         <section class="panel" aria-labelledby="mfa-title">
           <h2 id="mfa-title">Verificación en dos pasos</h2>
           <div id="mfa" aria-live="polite"></div>
         </section>
+        <section class="panel" aria-labelledby="sessions-title" id="sessions-panel" hidden>
+          <h2 id="sessions-title">Sesiones activas</h2>
+        </section>
       </main>
     </div>`;
   bindSidebarEvents(root);
   const box = root.querySelector("#mfa");
+  const sessionsPanel = root.querySelector("#sessions-panel");
+  function showSessions() {
+    if (!sessionsPanel.hidden || mfaPending()) return;
+    sessionsPanel.hidden = false;
+    mountActiveSessions(sessionsPanel);
+  }
   const focusFirst = () => box.querySelector("input, button")?.focus();
 
   async function load() {
@@ -76,6 +93,7 @@ export async function renderSecurity(root) {
       const status = await mfaApi.status();
       if (status.enabled) showEnabled(status);
       else showDisabled(status);
+      showSessions();
     } catch (err) {
       if (err.name === "AbortError") return;
       box.innerHTML = errorStateHtml(err.message);

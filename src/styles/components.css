@@ -1086,3 +1086,46 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Sesiones activas (B13), en Seguridad. */
+.session-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+.session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.session__info {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.session__device {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+.session__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px 20px;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+.session__meta dt {
+  color: var(--text-muted);
+}
+.session__meta dd {
+  margin: 0;
+}
+.session__unknown {
+  font-style: italic;
+}
+.session__date {
+  white-space: nowrap;
+}

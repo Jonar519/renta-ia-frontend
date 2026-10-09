@@ -8,4 +8,8 @@ export const usersApi = {
   cancelEmailChange: () => http.delete("/api/users/me/email"),
   changePassword: (currentPassword, newPassword) =>
     http.post("/api/users/me/password", { currentPassword, newPassword }),
+  // Sesiones activas (B13).
+  sessions: () => http.get("/api/users/me/sessions"),
+  closeSession: (id) => http.delete(`/api/users/me/sessions/${encodeURIComponent(id)}`),
+  closeOtherSessions: () => http.delete("/api/users/me/sessions"),
 };
