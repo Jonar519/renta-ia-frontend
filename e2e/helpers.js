@@ -6,15 +6,24 @@ import { totpCode } from "./totp.js";
 
 /**
  * Registra en `violations` cada violación de la Content-Security-Policy de
- * la página (p. ej. un style="…" en línea, que la CSP bloquea).
+ * la página (p. ej. un style="…" en línea, que la CSP bloquea), con el
+ * archivo y la línea que la causó.
+ *
+ * Única excepción: la traza de Playwright (trace: "retain-on-failure") vuelve
+ * a pedir con fetch las imágenes blob: de la página (la foto de perfil) para
+ * guardarlas en la traza. Esa petición la hace la herramienta, no la app: se
+ * reconoce por ser connect-src a blob: SIN archivo de origen. Con la traza
+ * apagada no ocurre (verificado en B12). Cualquier otra violación cuenta.
  */
 export async function collectCspViolations(page) {
   const violations = [];
   await page.exposeFunction("__reportCsp", (v) => violations.push(v));
   await page.addInitScript(() => {
-    document.addEventListener("securitypolicyviolation", (e) =>
-      window.__reportCsp(`${e.violatedDirective} ${e.blockedURI}`)
-    );
+    document.addEventListener("securitypolicyviolation", (e) => {
+      const fromTraceTool = e.violatedDirective === "connect-src" && e.blockedURI === "blob" && !e.sourceFile;
+      if (!fromTraceTool)
+        window.__reportCsp(`${e.violatedDirective} ${e.blockedURI} (${e.sourceFile}:${e.lineNumber})`);
+    });
   });
   return violations;
 }

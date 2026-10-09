@@ -703,6 +703,7 @@
   background: rgba(255, 255, 255, 0.06);
 }
 .user-menu__avatar {
+  overflow: hidden;
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -1045,4 +1046,43 @@
   display: grid;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+/* Foto de perfil (B12): la imagen llena el círculo de las iniciales. */
+.user-menu__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-photo {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.profile-photo__current {
+  width: 96px;
+  height: 96px;
+  font-size: var(--fs-xl);
+}
+.profile-photo__actions,
+.avatar-cropper .form-actions {
+  justify-content: flex-start;
+}
+.avatar-cropper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-top: 16px;
+}
+.avatar-cropper canvas {
+  width: min(256px, 100%);
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+}
+.avatar-cropper__zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

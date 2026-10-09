@@ -13,13 +13,34 @@ import { showToast } from "./toast.js";
  *  - Tab cierra (el foco sigue su orden normal); un clic fuera también cierra.
  */
 
-const initials = (name = "") =>
+export const initials = (name = "") =>
   name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((word) => word[0].toUpperCase())
     .join("") || "?";
+
+/**
+ * Iniciales, o la foto de perfil si la hay (B12). La foto se pide con la
+ * sesión (api/avatar.api.js, cargado solo si hay foto) y reemplaza a las
+ * iniciales cuando llega; si mientras tanto cambió, no se pinta la vieja.
+ */
+export function paintAvatar(el, user) {
+  const version = user?.avatarUpdatedAt ?? "";
+  el.dataset.version = version;
+  el.textContent = initials(user?.name);
+  if (!version) return;
+  import("../api/avatar.api.js")
+    .then((m) => m.avatarUrl(version))
+    .then((url) => {
+      if (!url || el.dataset.version !== version) return;
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = "";
+      el.replaceChildren(img);
+    });
+}
 
 // Nombre, rol y correo. El correo no está en la pista de localStorage: llega
 // al recuperar la sesión, por eso la cabecera se vuelve a pintar al abrir.
@@ -61,6 +82,7 @@ export function bindUserMenu(root) {
   const popup = menu.querySelector(".user-menu__popup");
   const items = [...menu.querySelectorAll('[role="menuitem"]')];
   const isOpen = () => !popup.hidden;
+  paintAvatar(menu.querySelector(".user-menu__avatar"), getState().user);
 
   // Si cambia el nombre (Mi perfil) o la sesión se renueva, el botón se
   // actualiza sin volver a pintar la pantalla. Al salir de esta pantalla (el
@@ -68,7 +90,7 @@ export function bindUserMenu(root) {
   const unsubscribe = subscribe((state) => {
     if (!menu.isConnected) return unsubscribe();
     if (!state.user) return;
-    menu.querySelector(".user-menu__avatar").textContent = initials(state.user.name);
+    paintAvatar(menu.querySelector(".user-menu__avatar"), state.user);
     menu.querySelector(".user-menu__name").textContent = state.user.name ?? "";
     menu.querySelector(".user-menu__role").textContent = ROLE_LABELS[state.user.role] ?? "";
   });

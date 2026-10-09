@@ -91,7 +91,8 @@ export function buildCsp(apiUrl) {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self'",
-    "img-src 'self' data:",
+    // blob: la foto de perfil, que se pide con el token y se muestra como blob (B12).
+    "img-src 'self' data: blob:",
     "font-src 'self'",
     `connect-src 'self' ${api.origin} ${ws}`,
     "worker-src 'self'",
