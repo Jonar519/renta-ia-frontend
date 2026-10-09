@@ -39,6 +39,8 @@ reales se prueba a mano (ver la lista del README raíz).
    ```bat
    set AI_PROVIDER=mock
    set AI_MOCK_LATENCY_MS=1500
+   rem Toda la suite entra desde la misma IP: sin esto, las últimas pruebas reciben 429.
+   set RATE_LIMIT_SCALE=3
    set DATABASE_URL=postgresql://postgres:postgres@localhost:5433/renta_ia_e2e
    set REDIS_URL=redis://localhost:6379/1
    set CORS_ORIGIN=http://localhost:4173

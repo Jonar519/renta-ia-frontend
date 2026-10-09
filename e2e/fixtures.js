@@ -36,19 +36,24 @@ export const test = base.extend({
         return ctx;
       };
       await watch(context);
-      const { newContext, newPage } = browser;
-      browser.newContext = async (options) => watch(await newContext.call(browser, options));
-      browser.newPage = async (options) => {
-        const ctx = await browser.newContext(options);
-        const page = await ctx.newPage();
-        page.on("close", () => ctx.close().catch(() => {}));
-        return page;
+      // Los contextos que abre la prueba se cierran al final, ESPERANDO a que
+      // cierren: un contexto a medio cerrar (o uno olvidado) en el navegador
+      // compartido del worker hacía fallar el arranque de la prueba siguiente
+      // ("Target page, context or browser has been closed").
+      const opened = [];
+      const { newContext } = browser;
+      browser.newContext = async (options) => {
+        const ctx = await newContext.call(browser, options);
+        opened.push(ctx);
+        return watch(ctx);
       };
+      browser.newPage = async (options) => (await browser.newContext(options)).newPage();
       try {
         await use(violations);
       } finally {
-        browser.newContext = newContext;
-        browser.newPage = newPage;
+        delete browser.newContext; // vuelven los métodos del prototipo
+        delete browser.newPage;
+        await Promise.all(opened.map((ctx) => ctx.close().catch(() => {})));
       }
       expect(violations, "Violaciones de la Content-Security-Policy").toEqual([]);
     },

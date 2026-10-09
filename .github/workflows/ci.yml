@@ -108,6 +108,10 @@ jobs:
       NODE_ENV: e2e
       AI_PROVIDER: mock
       AI_MOCK_LATENCY_MS: "1500"
+      # Toda la suite entra desde la misma IP: con el límite real de inicios de
+      # sesión por IP, las últimas pruebas reciben 429. Solo pruebas (la API lo
+      # rechaza con NODE_ENV=production).
+      RATE_LIMIT_SCALE: "3"
       JWT_SECRET: secreto-solo-para-e2e-en-ci
       # MFA obligatorio para admin (B9): e2e/globalSetup.js activa el del seed.
       # Clave de 32 bytes SOLO para este job (no protege datos reales).
