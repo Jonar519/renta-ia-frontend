@@ -1,11 +1,10 @@
 import { clientsApi } from "../../api/clients.api.js";
-import { bindRetry, errorStateHtml } from "../../components/states.js";
+import { bindRetry, errorStateHtml, skeletonBlockHtml } from "../../components/states.js";
 import { renderSidebar, bindSidebarEvents } from "../../components/sidebar.js";
 import { bindTabs } from "../../components/tabs.js";
 import { registerCleanup } from "../../router.js";
 import { getRealtimeStatus, onDocumentUpdate, onRealtimeStatus } from "../../realtime/realtime.js";
 import { createPoller } from "../../realtime/poller.js";
-import { createDocumentsSection, documentsPanelHtml } from "./documents.section.js";
 import { alertsPanelHtml, createAlertsSection } from "./alerts.section.js";
 import { createSummarySection, summaryPanelHtml } from "./summary.section.js";
 import { chatPanelHtml, createChatSection } from "./chat.section.js";
@@ -13,14 +12,17 @@ import { can } from "../../auth/permissions.js";
 
 export { documentStatus } from "./labels.js";
 
+// Documentos va en su propio chunk (B16): el panel se pinta con un skeleton
+// mientras llega (se pide en paralelo con los datos del cliente).
 const TABS = [
-  ["documents", "Documentos", documentsPanelHtml],
+  ["documents", "Documentos", () => skeletonBlockHtml({ lines: 4 })],
   ["alerts", "Alertas", alertsPanelHtml],
   ["summary", "Resumen", summaryPanelHtml, "ai.use"],
   ["chat", "Asistente IA", chatPanelHtml, "ai.use"],
 ];
 
 export async function renderClientDetail(root, clientId) {
+  const documentsModule = import("./documents.section.js");
   // El resumen y el chat consumen créditos de IA: no se muestran al portal
   // del contribuyente (rol client, solo lectura; la API también lo impide).
   const tabs = TABS.filter(([, , , permission]) => !permission || can(permission));
@@ -65,6 +67,14 @@ export async function renderClientDetail(root, clientId) {
   const viewAbort = new AbortController();
 
   const alerts = createAlertsSection(root, clientId);
+  const documentsPanel = root.querySelector("#panel-documents");
+  const { createDocumentsSection, documentsPanelHtml } = await documentsModule;
+  // Si mientras llegaba el chunk se salió de la vista, no hay nada que montar.
+  if (!documentsPanel.isConnected) {
+    viewAbort.abort();
+    return;
+  }
+  documentsPanel.innerHTML = documentsPanelHtml();
   // Cuando un documento termina, las reglas pueden haber creado alertas nuevas.
   const documents = createDocumentsSection(root, clientId, {
     signal: viewAbort.signal,

@@ -68,10 +68,10 @@ const FIRST_LOAD_BUDGETS = {
   "con sesión": { route: "/", session: true, limit: 23 * KB },
 };
 
-// Única excepción al tope por chunk: el detalle de cliente (sus cuatro
-// pestañas: documentos con sus Web Workers, alertas, resumen y chat). Medido:
-// 8,32 KB en B6 (7,24 KB al fijar el presupuesto original de 10 KB).
-const CHUNK_EXCEPTIONS = { clientDetail: 9 * KB };
+// Excepciones al tope por chunk (cada una con su tope medido). Desde B16 no
+// hay ninguna: el detalle de cliente (que tuvo 9 KB) se partió y la pestaña
+// Documentos va en su propio chunk (decisión escrita del usuario).
+const CHUNK_EXCEPTIONS = {};
 
 // Chunks fuera de los topes por rol, cada uno con su tope propio. Reservado
 // para pdf.js (B17, decisión D3): se medirá entonces y solo se acepta si se

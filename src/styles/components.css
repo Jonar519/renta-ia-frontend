@@ -95,6 +95,22 @@
   font-size: var(--fs-xs);
   font-weight: 500;
 }
+/* Contenido de la IA (violeta solo para eso): "Extraído por IA · sin revisar" (D5, B16). */
+.badge--ai {
+  background: var(--tone-ai-bg);
+  color: var(--tone-ai-fg);
+}
+/* La única micro-interacción del badge (D4): una vez, al quedar revisado.
+   Con prefers-reduced-motion, base.css anula la duración. */
+.badge--reviewed-now {
+  animation: badge-reviewed 320ms ease-out 1;
+}
+@keyframes badge-reviewed {
+  from {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+}
 .badge--neutral {
   background: var(--tone-neutral-bg);
   color: var(--text-muted);
@@ -1249,4 +1265,27 @@
   .tab {
     margin-right: 16px;
   }
+}
+
+/* Revisión de un concepto (B16): el formulario ocupa la celda. */
+.concept-review {
+  display: grid;
+  gap: 4px;
+  min-width: 14rem;
+}
+.concept-review label {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.concept-review input {
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-surface);
+}
+.concept-review .form-actions {
+  justify-content: flex-start;
+  margin-top: 4px;
 }

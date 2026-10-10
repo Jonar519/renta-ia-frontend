@@ -138,6 +138,12 @@ export default defineConfig(({ mode }) => ({
     manifest: true,
     rollupOptions: {
       output: {
+        // Las etiquetas del detalle de cliente las usan el detalle y su pestaña
+        // Documentos (chunk aparte desde B16): en su propio chunk compartido. Si
+        // quedaran dentro del chunk del detalle, este tendría que exportarlas y
+        // Rollup dejaría de tratarlo como el de su ruta (el presupuesto por rol
+        // no lo encontraría).
+        manualChunks: (id) => (/[\\/]views[\\/]clientDetail[\\/]labels\.js$/.test(id) ? "clientLabels" : undefined),
         // Las vistas que viven en un "index.js" de su carpeta (clientDetail/)
         // toman el nombre de la carpeta: si no, su chunk se llamaría "index-…",
         // igual que el de entrada, y el presupuesto por chunk no podría nombrarlo.

@@ -9,5 +9,7 @@ export const documentsApi = {
   findByHash: (clientId, sha256) => http.get(`/api/documents/client/${clientId}/by-hash/${sha256}`),
   // Archivos de hasta 15 MB: en conexiones lentas la subida tarda.
   upload: (formData) => http.postForm("/api/documents/upload", formData, { timeoutMs: LONG_TIMEOUT_MS }),
-  reprocess: (id) => http.post(`/api/documents/${id}/reprocess`),
+  // D6 (B16): con conceptos revisados, la API exige { discardReviews: true }.
+  reprocess: (id, { discardReviews = false } = {}) =>
+    http.post(`/api/documents/${id}/reprocess`, discardReviews ? { discardReviews } : undefined),
 };

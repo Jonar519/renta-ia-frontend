@@ -18,7 +18,7 @@ export const WORKER_AGGREGATION_THRESHOLD = 500;
 const CONCEPT_ROWS_INITIAL = 100;
 const CONCEPT_ROWS_STEP = 200;
 
-const conceptsLoadingHtml = skeletonRowsHtml(4, { label: "Cargando conceptos tributarios…" });
+const conceptsLoadingHtml = skeletonRowsHtml(5, { label: "Cargando conceptos tributarios…" });
 const documentsLoadingHtml = skeletonRowsHtml(5, { rows: 3, label: "Cargando documentos…" });
 
 export function documentsPanelHtml() {
@@ -32,7 +32,7 @@ export function documentsPanelHtml() {
       <div id="concepts-totals"></div>
       <table class="table table--stack" id="concepts-table">
         <caption class="visually-hidden">Conceptos tributarios extraídos por la IA de los documentos del cliente</caption>
-        <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col" class="num--end">Monto</th><th scope="col">Año</th></tr></thead>
+        <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col" class="num--end">Monto</th><th scope="col">Año</th><th scope="col">Revisión</th></tr></thead>
         <tbody>${conceptsLoadingHtml}</tbody>
       </table>
       <div class="load-more">
@@ -99,17 +99,36 @@ function documentRowHtml(d) {
     </tr>`;
 }
 
-const conceptRowHtml = (c) => `
-  <tr>
+/**
+ * Estado de revisión (B16, D5): sin revisar → badge violeta "Extraído por IA ·
+ * sin revisar" (lo dice tal cual: nada lo validó todavía); revisado → quién,
+ * y si se corrigió, qué había leído la IA (esto último, solo al equipo del contador). `justReviewed`: la única
+ * micro-interacción del badge, una vez, al quedar revisado.
+ */
+function reviewCellHtml(c, { justReviewed = false } = {}) {
+  const action = can("document.write")
+    ? `<button type="button" class="btn btn--ghost btn--small" data-review-id="${escapeHtml(c.id)}">${c.reviewed ? "Cambiar" : "Revisar"}<span class="visually-hidden"> ${CONCEPT_LABELS[c.conceptType] || escapeHtml(c.conceptType)} ${escapeHtml(String(c.periodYear))}</span></button>`
+    : "";
+  if (!c.reviewed) return `<span class="badge badge--ai">Extraído por IA · sin revisar</span> ${action}`;
+  const corrected =
+    c.source === "person" ? `<p class="table__note">Corregido · la IA leyó ${formatCOP(c.aiAmount)}</p>` : "";
+  // Quién lo revisó y lo que leyó la IA solo llegan al equipo del contador (la API no los manda al portal).
+  const by = c.reviewer ? `<p class="table__note">por ${escapeHtml(c.reviewer.name)}</p>` : "";
+  return `<span class="badge badge--success${justReviewed ? " badge--reviewed-now" : ""}">Revisado</span> ${action}${by}${corrected}`;
+}
+
+const conceptRowHtml = (c, options) => `
+  <tr data-concept-id="${escapeHtml(c.id)}">
     <td class="table__primary" data-label="Concepto">${CONCEPT_LABELS[c.conceptType] || escapeHtml(c.conceptType)}</td>
     <td data-label="Descripción">${escapeHtml(c.description || "—")}</td>
     <td class="num num--end" data-label="Monto">${formatCOP(c.amount)}</td>
     <td class="num" data-label="Año">${escapeHtml(String(c.periodYear))}</td>
+    <td data-label="Revisión">${reviewCellHtml(c, options)}</td>
   </tr>`;
 
 const TOTAL_COLUMNS = ["gross_income", "withholding", "deduction", "pension_contribution", "health_contribution"];
 
-function totalsHtml(rows) {
+function totalsHtml(rows, unreviewed = 0) {
   if (rows.length === 0) return "";
   return `
     <div class="table-scroll" role="region" aria-label="Totales por año gravable" tabindex="0">
@@ -123,7 +142,8 @@ function totalsHtml(rows) {
         )
         .join("")}</tbody>
     </table>
-    </div>`;
+    </div>
+    ${unreviewed ? `<p class="form-hint">Incluye ${unreviewed === 1 ? "1 concepto extraído" : `${unreviewed} conceptos extraídos`} por IA sin revisar.</p>` : ""}`;
 }
 
 /**
@@ -198,11 +218,11 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
         concepts.length >= WORKER_AGGREGATION_THRESHOLD
           ? await conceptsWorker.run("aggregate", { concepts }, { signal: loadSignal })
           : aggregateConcepts(concepts);
-      conceptsTotals.innerHTML = totalsHtml(totals);
+      conceptsTotals.innerHTML = totalsHtml(totals, unreviewedCount());
       conceptsTbody.innerHTML =
         concepts.length === 0
           ? inRow(
-              4,
+              5,
               emptyStateHtml(
                 "Aún no hay conceptos extraídos.",
                 "Aparecen solos cuando la IA termina de analizar un documento de este cliente."
@@ -218,7 +238,7 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
       conceptsTotals.innerHTML = "";
       conceptsMore.hidden = true;
       conceptsTbody.innerHTML = inRow(
-        4,
+        5,
         errorStateHtml(err.message, { title: "No se pudieron cargar los conceptos tributarios." })
       );
     } finally {
@@ -226,6 +246,23 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
     }
   }
   bindRetry(conceptsTbody, () => loadConcepts());
+
+  const unreviewedCount = () => concepts.reduce((n, c) => n + (c.reviewed ? 0 : 1), 0);
+
+  // Revisar un concepto (B16): la lógica y el formulario se descargan al primer clic.
+  conceptsTbody.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-review-id]");
+    if (!button) return;
+    const { openReview } = await import("./conceptReview.js");
+    openReview(button, {
+      clientId,
+      concepts,
+      formatCOP,
+      reviewCellHtml,
+      conceptRowHtml,
+      refreshTotals: () => (conceptsTotals.innerHTML = totalsHtml(aggregateConcepts(concepts), unreviewedCount())),
+    });
+  });
   conceptsMore.addEventListener("click", () => showMoreConcepts(CONCEPT_ROWS_STEP));
 
   /**
@@ -256,7 +293,20 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
     if (!button) return;
     button.disabled = true;
     try {
-      const updated = await documentsApi.reprocess(button.dataset.reprocessId);
+      let updated;
+      try {
+        updated = await documentsApi.reprocess(button.dataset.reprocessId);
+      } catch (err) {
+        // D6: tiene conceptos revisados. Solo con la confirmación explícita.
+        if (err.code !== "reviewed_concepts") throw err;
+        const { confirmDiscardReviews } = await import("./conceptReview.js");
+        if (!(await confirmDiscardReviews(err.message))) {
+          button.disabled = false;
+          button.focus();
+          return;
+        }
+        updated = await documentsApi.reprocess(button.dataset.reprocessId, { discardReviews: true });
+      }
       applyEvent({ documentId: updated.id, status: updated.status, errorMessage: updated.errorMessage });
       showToast("Análisis reencolado. El estado se actualizará solo.", "success");
     } catch (err) {
