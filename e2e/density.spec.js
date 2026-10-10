@@ -10,6 +10,7 @@ import { createAccountByInvitation, createAdminWithMfa, loginThroughUi } from ".
  * tablas desborda horizontalmente.
  */
 
+// Una celda de datos (no la fila "Cargando…" del principio, que no tiene relleno).
 const cellPadding = (page, selector) =>
   page
     .locator(selector)
@@ -47,12 +48,12 @@ test("la densidad elegida viaja con la cuenta: otro contexto del navegador la re
   const selector = page.getByRole("group", { name: "Densidad de la tabla" });
   await expect(selector.getByLabel("Cómoda")).toBeChecked();
   await expect(page.locator("html")).toHaveAttribute("data-density", "comfortable");
-  const comfortable = await cellPadding(page, "#clients-tbody td");
+  const comfortable = await cellPadding(page, "#clients-tbody td[data-label]");
   await expectNoSeriousA11yViolations(page, testInfo, "clientes-con-selector");
 
   await selector.getByLabel("Compacta").check();
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
-  expect(await cellPadding(page, "#clients-tbody td")).toBeLessThan(comfortable);
+  expect(await cellPadding(page, "#clients-tbody td[data-label]")).toBeLessThan(comfortable);
   // Se guardó en la cuenta: recargar (la sesión se recupera del servidor) la conserva.
   await page.waitForResponse((r) => r.url().endsWith("/api/users/me") && r.request().method() === "PATCH");
   await page.reload();
