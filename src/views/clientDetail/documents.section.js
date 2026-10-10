@@ -55,11 +55,13 @@ export function documentsPanelHtml() {
   return `
     ${uploadPanel}
 
+    <div class="split">
     <div id="document-viewer"></div>
 
     <section class="panel panel--deferred">
       <h2>Conceptos tributarios extraídos</h2>
       <div id="concepts-totals"></div>
+      <p class="form-hint" id="concepts-filter" aria-live="polite" hidden></p>
       <table class="table table--stack" id="concepts-table">
         <caption class="visually-hidden">Conceptos tributarios extraídos por la IA de los documentos del cliente</caption>
         <thead><tr><th scope="col">Concepto</th><th scope="col">Descripción</th><th scope="col" class="num--end">Monto</th><th scope="col">Año</th><th scope="col">Revisión</th></tr></thead>
@@ -69,6 +71,7 @@ export function documentsPanelHtml() {
         <button type="button" class="btn btn--ghost" id="concepts-more" aria-controls="concepts-table" hidden>Mostrar más conceptos</button>
       </div>
     </section>
+    </div>
 
     <section class="panel panel--deferred">
       <h2>Documentos</h2>
@@ -229,13 +232,48 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
   let concepts = [];
   let conceptsShown = 0;
   let conceptsAbort = null;
+  let rowsAbort = null;
+  // Vista dividida (B18): con el original abierto, la tabla muestra solo los
+  // conceptos de ese documento. Es la misma tabla (y la misma revisión de B16).
+  let openDoc = null;
+  const conceptsFilter = root.querySelector("#concepts-filter");
+  const visibleConcepts = () => (openDoc ? concepts.filter((c) => c.documentId === openDoc.id) : concepts);
 
   async function showMoreConcepts(count) {
-    const next = concepts.slice(conceptsShown, conceptsShown + count);
+    const list = visibleConcepts();
+    const next = list.slice(conceptsShown, conceptsShown + count);
     conceptsShown += next.length;
-    conceptsMore.hidden = conceptsShown >= concepts.length;
-    conceptsMore.textContent = `Mostrar más conceptos (${concepts.length - conceptsShown} restantes)`;
-    await appendInBatches(conceptsTbody, next, conceptRowHtml, { signal: conceptsAbort.signal });
+    conceptsMore.hidden = conceptsShown >= list.length;
+    conceptsMore.textContent = `Mostrar más conceptos (${list.length - conceptsShown} restantes)`;
+    await appendInBatches(conceptsTbody, next, conceptRowHtml, { signal: rowsAbort.signal });
+  }
+
+  /** Pinta las filas desde cero (al cargar, y al abrir o cerrar el original). */
+  async function renderConcepts() {
+    rowsAbort?.abort();
+    rowsAbort = new AbortController();
+    const list = visibleConcepts();
+    conceptsFilter.hidden = !openDoc;
+    if (openDoc) {
+      conceptsFilter.textContent = `Conceptos de ${openDoc.originalName}: ${list.length} de ${concepts.length}. Los totales son de todo el cliente; al cerrar el original vuelven todos los conceptos.`;
+    }
+    conceptsTbody.innerHTML = list.length
+      ? ""
+      : inRow(
+          5,
+          openDoc
+            ? emptyStateHtml(
+                "Este documento no tiene conceptos extraídos.",
+                "Si la IA aún lo está analizando, aparecen solos cuando termina."
+              )
+            : emptyStateHtml(
+                "Aún no hay conceptos extraídos.",
+                "Aparecen solos cuando la IA termina de analizar un documento de este cliente."
+              )
+        );
+    conceptsShown = 0;
+    if (list.length) await showMoreConcepts(CONCEPT_ROWS_INITIAL);
+    else conceptsMore.hidden = true;
   }
 
   async function loadConcepts() {
@@ -253,19 +291,7 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
           ? await conceptsWorker.run("aggregate", { concepts }, { signal: loadSignal })
           : aggregateConcepts(concepts);
       conceptsTotals.innerHTML = totalsHtml(totals, unreviewedCount());
-      conceptsTbody.innerHTML =
-        concepts.length === 0
-          ? inRow(
-              5,
-              emptyStateHtml(
-                "Aún no hay conceptos extraídos.",
-                "Aparecen solos cuando la IA termina de analizar un documento de este cliente."
-              )
-            )
-          : "";
-      conceptsShown = 0;
-      if (concepts.length) await showMoreConcepts(CONCEPT_ROWS_INITIAL);
-      else conceptsMore.hidden = true;
+      await renderConcepts();
     } catch (err) {
       if (err.name === "AbortError") return;
       concepts = [];
@@ -354,10 +380,15 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
         fetchFile: fetchDocumentFile,
         onClose: () => {
           viewer = null;
+          openDoc = null;
+          renderConcepts();
           // La fila pudo volver a pintarse (el análisis terminó): el botón de ahora.
           docsTbody.querySelector(`button[data-view-id="${CSS.escape(doc.id)}"]`)?.focus();
         },
       });
+      // Vista dividida (B18): junto al original, solo sus conceptos.
+      openDoc = doc;
+      renderConcepts();
       // Sin behavior: respeta scroll-behavior del CSS (y prefers-reduced-motion).
       host.scrollIntoView({ block: "start" });
       return;

@@ -1238,8 +1238,10 @@
     /* La etiqueta es texto, aunque la celda sea una cifra (.num usa la fuente monoespaciada). */
     font: 400 var(--fs-sm) var(--font-sans);
   }
-  /* En una tarjeta hay menos ancho: las cifras largas (fechas con hora) pueden partirse. */
-  .table--stack .num {
+  /* En una tarjeta hay menos ancho: las cifras largas (fechas con hora) pueden partirse,
+     y las acciones (p. ej. "Ver original" y "Reintentar análisis") pasan a otra línea. */
+  .table--stack .num,
+  .table--stack .table__actions {
     white-space: normal;
   }
   .table--stack td:not([data-label]) {
@@ -1337,4 +1339,67 @@
 .viewer__page img {
   max-width: 100%;
   height: auto;
+}
+
+/* Vista dividida (B18): con el original abierto (solo contador y asistente), el
+   visor y los conceptos de ese documento quedan lado a lado en pantallas anchas.
+   En las demás se apilan (el visor arriba), como sin vista dividida. */
+@media (min-width: 1200px) {
+  .split:has(.viewer) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .split:has(.viewer) > #document-viewer {
+    position: sticky;
+    top: 16px;
+  }
+  .split:has(.viewer) .viewer__page {
+    max-height: calc(100vh - 140px);
+  }
+  /* Media columna no alcanza para cinco columnas: los conceptos van en tarjetas,
+     como en móvil (mismas reglas que .table--stack en max-width: 640px). */
+  .split:has(.viewer) .table--stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .split:has(.viewer) .table--stack,
+  .split:has(.viewer) .table--stack tbody,
+  .split:has(.viewer) .table--stack tr,
+  .split:has(.viewer) .table--stack td {
+    display: block;
+    width: 100%;
+  }
+  .split:has(.viewer) .table--stack tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .split:has(.viewer) .table--stack tr:last-child {
+    border-bottom: none;
+  }
+  .split:has(.viewer) .table--stack td {
+    position: relative;
+    padding: 3px 0 3px 8.25rem;
+    border: none;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+  .split:has(.viewer) .table--stack td[data-label]::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 7.5rem;
+    color: var(--text-muted);
+    font: 400 var(--fs-sm) var(--font-sans);
+  }
+  .split:has(.viewer) .table--stack .num {
+    white-space: normal;
+  }
+  .split:has(.viewer) .table--stack td:not([data-label]) {
+    padding-left: 0;
+  }
 }
