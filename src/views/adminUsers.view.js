@@ -1,4 +1,5 @@
 import { adminApi } from "../api/admin.api.js";
+import { mountReassign } from "./adminReassign.js";
 import { ROLE_LABELS } from "../auth/roles.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
 import { bindDensityToggles, densityToggleHtml } from "../components/densityToggle.js";
@@ -118,6 +119,7 @@ export async function renderAdminUsers(root) {
             <button type="button" class="btn btn--primary btn--danger-fill" data-dialog="confirm">Cancelar invitación</button>
           </div>
         </dialog>
+        <div id="reassign-slot"></div>
       </main>
     </div>`;
   bindSidebarEvents(root);
@@ -310,6 +312,7 @@ export async function renderAdminUsers(root) {
     pendingCancel = null;
   });
 
+  mountReassign(root.querySelector("#reassign-slot"));
   await loadList();
 }
 

@@ -7,5 +7,6 @@ export const adminApi = {
   resendInvitation: (userId) => http.post(`/api/admin/invitations/${encodeURIComponent(userId)}/resend`),
   cancelInvitation: (userId) => http.delete(`/api/admin/invitations/${encodeURIComponent(userId)}`),
   accountants: () => http.get("/api/admin/accountants"),
+  reassignClients: (fromUserId, toUserId) => http.post("/api/admin/clients/reassign", { fromUserId, toUserId }),
   portalClients: (q) => http.get(withQuery("/api/admin/portal-clients", { q: q || undefined })),
 };

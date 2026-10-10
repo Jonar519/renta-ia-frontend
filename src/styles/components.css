@@ -117,9 +117,11 @@
 }
 
 /* Formularios */
+/* minmax(0, 1fr): sin eso, un select con opciones largas (nombre · correo) ensancha
+   su columna y empuja la página hacia un lado. */
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 .form-grid label,
@@ -382,7 +384,7 @@
 
 @media (max-width: 640px) {
   .form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -897,6 +899,8 @@
 #role-extra select,
 #role-extra input,
 .form-grid select {
+  min-width: 0; /* un select mide lo que su opción más larga: que no ensanche la columna */
+  max-width: 100%;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   padding: 9px 12px;
