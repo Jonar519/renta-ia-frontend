@@ -1285,6 +1285,9 @@
   color: var(--text);
   background: var(--bg-surface);
 }
+.concept-review [role="alert"]:empty {
+  display: none;
+}
 .concept-review .form-actions {
   justify-content: flex-start;
   margin-top: 4px;

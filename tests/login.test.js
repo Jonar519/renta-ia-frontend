@@ -41,7 +41,7 @@ describe("login (B10)", () => {
     expect([...hero.querySelectorAll(".login__index li")].map((li) => li.textContent)).toEqual([
       "Lee tus soportes:extrae las cifras de certificados, extractos y facturas.",
       "Te avisa:vencimientos e inconsistencias entre documentos.",
-      "Tú decides:las cifras y los resúmenes son orientativos; los verificas antes de declarar.",
+      "Tú decides:lo extraído queda marcado hasta que lo revisas.",
     ]);
     for (const leader of hero.querySelectorAll(".login__leader"))
       expect(leader.getAttribute("aria-hidden")).toBe("true");

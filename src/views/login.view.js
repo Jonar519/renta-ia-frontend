@@ -45,7 +45,7 @@ export function renderLogin(root) {
         <ul class="login__index">
           <li><span class="login__term">Lee tus soportes<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">extrae las cifras de certificados, extractos y facturas.</span></li>
           <li><span class="login__term">Te avisa<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">vencimientos e inconsistencias entre documentos.</span></li>
-          <li><span class="login__term">Tú decides<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">las cifras y los resúmenes son orientativos; los verificas antes de declarar.</span></li>
+          <li><span class="login__term">Tú decides<span class="visually-hidden">:</span></span><span class="login__leader" aria-hidden="true"></span><span class="login__desc">lo extraído queda marcado hasta que lo revisas.</span></li>
         </ul>
       </section>
     </main>
