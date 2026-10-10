@@ -14,6 +14,9 @@ const RULES = {
   "document.write": ["admin", "accountant", "assistant"],
   "alert.update": ["admin", "accountant", "assistant"],
   "ai.use": ["admin", "accountant", "assistant"],
+  // Visor del original (B17). El portal y el admin solo descargan el documento
+  // (decisiones escritas del usuario: el visor no cabe en su presupuesto de JS).
+  "document.viewer": ["accountant", "assistant"],
 };
 
 export function can(action, user = getState().user) {

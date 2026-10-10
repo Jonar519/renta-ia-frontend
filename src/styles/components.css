@@ -1292,3 +1292,49 @@
   justify-content: flex-start;
   margin-top: 4px;
 }
+
+/* Visor del documento original (B17). */
+.viewer {
+  margin-bottom: 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+}
+.viewer__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.viewer__title {
+  margin: 0;
+  font-size: var(--fs-base);
+  overflow-wrap: anywhere;
+}
+.viewer__tools,
+.viewer__pdf-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.viewer__page {
+  max-height: 75vh;
+  overflow: auto;
+  padding: 12px;
+  background: var(--bg-app);
+}
+.viewer__page img,
+.viewer__page canvas {
+  display: block;
+  max-width: none;
+  margin: 0 auto;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+}
+.viewer__page img {
+  max-width: 100%;
+  height: auto;
+}

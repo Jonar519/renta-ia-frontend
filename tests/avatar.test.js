@@ -14,6 +14,8 @@ vi.mock("../src/api/users.api.js", () => ({
     requestEmailChange: vi.fn(),
     cancelEmailChange: vi.fn(),
     changePassword: vi.fn(),
+    // "Tus datos" (B14) lo pide al montar el perfil.
+    deletionStatus: vi.fn(() => Promise.resolve({ canDelete: true })),
   },
 }));
 vi.mock("../src/api/avatar.api.js", () => ({

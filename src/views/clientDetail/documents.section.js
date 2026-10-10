@@ -1,5 +1,7 @@
 import { clientsApi } from "../../api/clients.api.js";
 import { can } from "../../auth/permissions.js";
+import { refreshSession } from "../../auth/session.js";
+import { getState } from "../../state/store.js";
 import { documentsApi } from "../../api/documents.api.js";
 import { showErrorToast, showToast } from "../../components/toast.js";
 import { createPagedList } from "../../components/pagedList.js";
@@ -15,6 +17,32 @@ import { CONCEPT_LABELS, DOC_TYPE_LABELS, canReprocess, documentStatus, formatCO
 // crear el worker y copiar los datos (structured clone) cuesta más que sumar.
 export const WORKER_AGGREGATION_THRESHOLD = 500;
 // Filas de conceptos que se pintan de entrada; el resto, con "Mostrar más".
+/**
+ * El archivo original (B17): { blob, type }, o un Error con un mensaje para
+ * mostrar tal cual. Exige sesión y un <img>, un canvas o un <a download> no
+ * pueden mandar el token: se pide con fetch y se usa como blob: (como la foto
+ * de perfil). Lo usan el visor (se le inyecta) y la descarga del portal.
+ */
+async function fetchDocumentFile(docId, retry = true) {
+  let response;
+  try {
+    response = await fetch(
+      `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/documents/${encodeURIComponent(docId)}/file`,
+      {
+        headers: { Authorization: `Bearer ${getState().token}` },
+      }
+    );
+  } catch {
+    throw new Error("Sin conexión: no se pudo descargar el archivo.");
+  }
+  if (response.status === 401 && retry && (await refreshSession().catch(() => null))) {
+    return fetchDocumentFile(docId, false);
+  }
+  if (response.status === 404) throw new Error("El archivo original de este documento no está disponible.");
+  if (!response.ok) throw new Error("No se pudo abrir el archivo. Intenta de nuevo.");
+  return { blob: await response.blob(), type: response.headers.get("content-type") ?? "" };
+}
+
 const CONCEPT_ROWS_INITIAL = 100;
 const CONCEPT_ROWS_STEP = 200;
 
@@ -26,6 +54,8 @@ export function documentsPanelHtml() {
   const uploadPanel = can("document.write") ? uploadPanelHtml() : "";
   return `
     ${uploadPanel}
+
+    <div id="document-viewer"></div>
 
     <section class="panel panel--deferred">
       <h2>Conceptos tributarios extraídos</h2>
@@ -86,6 +116,10 @@ function documentRowHtml(d) {
     canReprocess(d) && can("document.write")
       ? `<button type="button" class="btn btn--ghost btn--small" data-requires-network data-reprocess-id="${escapeHtml(d.id)}">Reintentar análisis<span class="visually-hidden"> de ${escapeHtml(d.originalName)}</span></button>`
       : "";
+  // El original (B17): en el visor; el portal, sin visor, solo lo descarga.
+  const view = can("document.viewer")
+    ? `<button type="button" class="btn btn--ghost btn--small" data-view-id="${escapeHtml(d.id)}">Ver original<span class="visually-hidden"> de ${escapeHtml(d.originalName)}</span></button>`
+    : `<button type="button" class="btn btn--ghost btn--small" data-download-id="${escapeHtml(d.id)}">Descargar<span class="visually-hidden"> ${escapeHtml(d.originalName)}</span></button>`;
   return `
     <tr data-document-id="${escapeHtml(d.id)}">
       <td class="table__primary" data-label="Archivo">${escapeHtml(d.originalName)}</td>
@@ -95,7 +129,7 @@ function documentRowHtml(d) {
         ${status.detail ? `<p class="table__note">${escapeHtml(status.detail)}</p>` : ""}
       </td>
       <td class="num" data-label="Subido">${new Date(d.uploadedAt).toLocaleString("es-CO")}</td>
-      <td>${action}</td>
+      <td class="table__actions">${view} ${action}</td>
     </tr>`;
 }
 
@@ -288,7 +322,46 @@ export function createDocumentsSection(root, clientId, { signal, onProcessed = (
     }
   }
 
+  // Vista dividida I (B17): el visor se descarga al abrir "Ver original".
+  let viewer = null;
   docsTbody.addEventListener("click", async (event) => {
+    const downloadButton = event.target.closest("button[data-download-id]");
+    if (downloadButton) {
+      const doc = documents.getItems().find((d) => d.id === downloadButton.dataset.downloadId);
+      if (!doc) return;
+      downloadButton.disabled = true;
+      try {
+        const url = URL.createObjectURL((await fetchDocumentFile(doc.id)).blob);
+        const link = Object.assign(document.createElement("a"), { href: url, download: doc.originalName });
+        link.click();
+        // El navegador ya tomó el blob al hacer clic; se libera después.
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (err) {
+        showErrorToast(err);
+      } finally {
+        downloadButton.disabled = false;
+      }
+      return;
+    }
+    const viewButton = event.target.closest("button[data-view-id]");
+    if (viewButton && can("document.viewer")) {
+      const doc = documents.getItems().find((d) => d.id === viewButton.dataset.viewId);
+      if (!doc) return;
+      viewer?.close();
+      const { openDocumentViewer } = await import("./documentViewer.js");
+      const host = root.querySelector("#document-viewer");
+      viewer = openDocumentViewer(host, doc, {
+        fetchFile: fetchDocumentFile,
+        onClose: () => {
+          viewer = null;
+          // La fila pudo volver a pintarse (el análisis terminó): el botón de ahora.
+          docsTbody.querySelector(`button[data-view-id="${CSS.escape(doc.id)}"]`)?.focus();
+        },
+      });
+      // Sin behavior: respeta scroll-behavior del CSS (y prefers-reduced-motion).
+      host.scrollIntoView({ block: "start" });
+      return;
+    }
     const button = event.target.closest("button[data-reprocess-id]");
     if (!button) return;
     button.disabled = true;

@@ -37,6 +37,9 @@ function preloadFonts() {
   };
 }
 
+/** Los archivos de pdf.js en dist/assets (la biblioteca, su worker y los módulos con su URL). */
+export const PDFJS_ASSET = /(^|\/)pdf(\.worker)?\.min-[\w-]+\.m?js$/;
+
 /**
  * Emite /service-worker.js en cada build a partir de src/sw/service-worker.js,
  * con el id del build y la lista real de archivos a precachear. El id es un
@@ -59,7 +62,9 @@ function serviceWorker() {
         "/index.html",
         "/offline.html",
         "/favicon.svg",
-        ...files.filter((file) => file.startsWith("assets/")).map((f) => `/${f}`),
+        // pdf.js (excepción D3, ~496 KB) NO se precachea: se descarga solo al
+        // abrir un PDF (scripts/check-bundle.mjs lo verifica).
+        ...files.filter((file) => file.startsWith("assets/") && !PDFJS_ASSET.test(file)).map((f) => `/${f}`),
       ];
       const source = template
         .replace('const BUILD_ID = "__BUILD_ID__";', `const BUILD_ID = "${buildId}";`)

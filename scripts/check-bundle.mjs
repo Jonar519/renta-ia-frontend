@@ -14,11 +14,12 @@
  * el rol abre todas sus pantallas. Las rutas y su acceso se leen de la tabla
  * de rutas de src/main.js (la misma que usa la app); el grafo de módulos, del
  * manifest de Vite. Un chunk que ningún rol alcanza hace fallar el chequeo
- * (salvo las excepciones documentadas en JS_EXCEPTIONS).
+ * (salvo pdf.js, la excepción D3 con su propio tope: ver PDFJS).
  */
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
+import { PDFJS_ASSET } from "../vite.config.js";
 
 const DIST = path.resolve("dist");
 const KB = 1024;
@@ -73,10 +74,28 @@ const FIRST_LOAD_BUDGETS = {
 // Documentos va en su propio chunk (decisión escrita del usuario).
 const CHUNK_EXCEPTIONS = {};
 
-// Chunks fuera de los topes por rol, cada uno con su tope propio. Reservado
-// para pdf.js (B17, decisión D3): se medirá entonces y solo se acepta si se
-// descarga ÚNICAMENTE al abrir un documento.
-const JS_EXCEPTIONS = {};
+// pdf.js (B17, excepción D3, decisión escrita del usuario): fuera de los topes
+// por rol, con su propio tope (medido: 496 KB, la biblioteca y su worker). Se
+// acepta solo si se descarga ÚNICAMENTE al abrir un PDF: lo importa de forma
+// diferida el visor (que a su vez se descarga al pulsar "Ver original"), como
+// archivos de Mozilla tal cual (?url, mismo origen), y nunca se precachea. La
+// versión del paquete va fija en package.json para que el tope no se mueva.
+const PDFJS = {
+  limit: 520 * KB,
+  loader: "src/views/clientDetail/documentViewer.js",
+  keys: ["node_modules/pdfjs-dist/build/pdf.min.mjs?url", "node_modules/pdfjs-dist/build/pdf.worker.min.mjs?url"],
+};
+const isPdfjsKey = (key) => key.includes("node_modules/pdfjs-dist/");
+
+// Módulos diferidos que un rol NUNCA descarga aunque esté en una pantalla
+// suya: la pantalla los importa solo si el permiso lo deja (src/auth/permissions.js,
+// que se verifica abajo). B17 (decisiones escritas del usuario): el portal y el
+// admin no tienen visor del original, solo "Descargar".
+const VIEWER = "src/views/clientDetail/documentViewer.js";
+const ROLE_EXCLUDED = {
+  "cliente del portal": { [VIEWER]: { permission: "document.viewer", role: "client" } },
+  admin: { [VIEWER]: { permission: "document.viewer", role: "admin" } },
+};
 
 // Web Workers (no aparecen en el grafo del manifest): quién los usa.
 const WORKERS = {
@@ -95,7 +114,9 @@ const html = fs.readFileSync(path.join(DIST, "index.html"), "utf8");
 const entryName = html.match(/<script type="module"[^>]*src="\/assets\/([^"]+\.js)"/)?.[1];
 if (!entryName) throw new Error("No se encontró el script de entrada en dist/index.html");
 
-const js = assets.filter((f) => f.endsWith(".js"));
+const isPdfjsFile = (f) => PDFJS_ASSET.test(path.basename(f));
+const js = assets.filter((f) => f.endsWith(".js") && !isPdfjsFile(f));
+const pdfjsFiles = assets.filter(isPdfjsFile);
 const entryFile = path.join(DIST, "assets", entryName);
 const chunks = js
   .filter((f) => f !== entryFile)
@@ -115,13 +136,15 @@ const entryKey = Object.keys(manifest).find((k) => manifest[k].isEntry);
  * diferidos. Los diferidos que son pantallas de la tabla de rutas o módulos
  * "tras el load" de main.js NO se siguen: cada rol los suma solo si le tocan.
  */
-function reach(key, files) {
+function reach(key, files, excluded = {}) {
   const item = manifest[key];
   if (!item) throw new Error(`El manifest no tiene ${key}`);
   if (files.has(item.file)) return;
   files.add(item.file);
-  for (const dep of item.imports ?? []) reach(dep, files);
-  for (const dep of item.dynamicImports ?? []) if (!ADDED_PER_ROLE.has(dep)) reach(dep, files);
+  for (const dep of item.imports ?? []) reach(dep, files, excluded);
+  for (const dep of item.dynamicImports ?? []) {
+    if (!ADDED_PER_ROLE.has(dep) && !isPdfjsKey(dep) && !excluded[dep]) reach(dep, files, excluded);
+  }
 }
 
 const mainSrc = fs.readFileSync(path.resolve("src/main.js"), "utf8");
@@ -155,16 +178,40 @@ const workerFile = (name) => js.find((f) => path.basename(f).startsWith(`${name}
 const roleFiles = {};
 for (const [role, audiences] of Object.entries(AUDIENCES)) {
   const files = new Set();
-  reach(entryKey, files);
-  for (const key of afterLoad) if (role !== "invitado" || !SESSION_ONLY.has(key)) reach(key, files);
-  for (const route of routes) if (audiences.includes(route.audience)) reach(route.key, files);
+  const excluded = ROLE_EXCLUDED[role] ?? {};
+  reach(entryKey, files, excluded);
+  for (const key of afterLoad) if (role !== "invitado" || !SESSION_ONLY.has(key)) reach(key, files, excluded);
+  for (const route of routes) if (audiences.includes(route.audience)) reach(route.key, files, excluded);
   for (const [worker, roles] of Object.entries(WORKERS)) {
     const file = workerFile(worker);
     if (!file) throw new Error(`No se encontró el worker ${worker} en dist/assets`);
     if (roles.includes(role)) files.add(path.relative(DIST, file).replace(/\\/g, "/"));
   }
-  for (const file of files) if (JS_EXCEPTIONS[chunkName(file)]) files.delete(file);
   roleFiles[role] = files;
+}
+
+// Una exclusión solo vale si el módulo es diferido (nunca estático desde una
+// pantalla, la entrada o lo cargado tras el load) y el permiso que lo protege
+// no incluye al rol.
+const permissionsSrc = fs.readFileSync(path.resolve("src/auth/permissions.js"), "utf8");
+const staticClosure = (key, seen = new Set()) => {
+  if (seen.has(key)) return seen;
+  seen.add(key);
+  for (const dep of manifest[key]?.imports ?? []) staticClosure(dep, seen);
+  return seen;
+};
+const exclusionErrors = [];
+for (const [role, modules] of Object.entries(ROLE_EXCLUDED)) {
+  for (const [key, { permission, role: appRole }] of Object.entries(modules)) {
+    if (!manifest[key]) exclusionErrors.push(`${role}: el manifest no tiene ${key}`);
+    for (const from of [entryKey, ...routes.map((r) => r.key), ...afterLoad]) {
+      if (staticClosure(from).has(key)) exclusionErrors.push(`${role}: ${from} importa ${key} de forma estática`);
+    }
+    const rule = permissionsSrc.match(new RegExp(`"${permission.replace(".", "\\.")}":\\s*\\[([^\\]]*)\\]`))?.[1];
+    if (rule === undefined) exclusionErrors.push(`${role}: permissions.js no define "${permission}"`);
+    else if (rule.includes(`"${appRole}"`))
+      exclusionErrors.push(`${role}: el permiso "${permission}" incluye "${appRole}"`);
+  }
 }
 
 const firstLoadFiles = {};
@@ -222,20 +269,72 @@ for (const [role, limit] of Object.entries(ROLE_BUDGETS)) {
   failed ||= !ok;
   line(ok, role, value, limit, ` (${roleFiles[role].size} archivos)`);
 }
-for (const [name, limit] of Object.entries(JS_EXCEPTIONS)) {
-  const file = js.find((f) => chunkName(f) === name);
-  const value = file ? gzipSize(file) : 0;
-  const ok = value <= limit;
-  failed ||= !ok;
-  line(ok, `excepción ${name}`, value, limit, " (fuera de los topes por rol)");
+for (const message of exclusionErrors) {
+  console.log(`  EXCEDE exclusión por rol: ${message}`);
+  failed = true;
 }
-// Todo chunk debe contar para algún rol (o ser una excepción documentada).
+// Todo chunk debe contar para algún rol (pdf.js va aparte, abajo).
 const counted = new Set(Object.values(roleFiles).flatMap((files) => [...files]));
 for (const file of js) {
   const rel = path.relative(DIST, file).replace(/\\/g, "/");
-  if (!counted.has(rel) && !JS_EXCEPTIONS[chunkName(file)]) {
+  if (!counted.has(rel)) {
     console.log(`  EXCEDE ${rel} no lo descarga ningún rol según la tabla de rutas: asígnalo en check-bundle.mjs`);
     failed = true;
+  }
+}
+
+console.log("pdf.js (excepción D3: solo al abrir un PDF):");
+{
+  const value = pdfjsFiles.reduce((s, f) => s + gzipSize(f), 0);
+  const ok = value <= PDFJS.limit && pdfjsFiles.length > 0;
+  failed ||= !ok;
+  line(
+    ok,
+    "pdf.js (biblioteca+worker)",
+    value,
+    PDFJS.limit,
+    ` (${pdfjsFiles.length} archivos, fuera de los topes por rol)`
+  );
+  const fail = (message) => {
+    console.log(`  EXCEDE ${message}`);
+    failed = true;
+  };
+  for (const [key, item] of Object.entries(manifest)) {
+    // Empaquetado como módulo (import "pdfjs-dist"): Vite lo minificaría de
+    // nuevo y quedaría dentro del grafo de alguna pantalla.
+    if (isPdfjsKey(key) && !PDFJS.keys.includes(key) && item.file.endsWith(".js")) {
+      fail(`${key} está empaquetado como módulo (${item.file}): pdf.js solo se carga con ?url desde ${PDFJS.loader}`);
+    }
+    for (const dep of item.imports ?? []) {
+      if (isPdfjsKey(dep)) fail(`${key} importa pdf.js de forma estática (${dep})`);
+    }
+    for (const dep of item.dynamicImports ?? []) {
+      if (isPdfjsKey(dep) && key !== PDFJS.loader)
+        fail(`${key} importa pdf.js (${dep}): solo puede hacerlo ${PDFJS.loader}`);
+    }
+  }
+  // El visor (que carga pdf.js) nunca va en el grafo estático de una pantalla,
+  // de la entrada ni de lo que se carga tras el load.
+  for (const key of [entryKey, ...routes.map((r) => r.key), ...afterLoad]) {
+    if (staticClosure(key).has(PDFJS.loader)) fail(`${key} importa el visor (${PDFJS.loader}) de forma estática`);
+  }
+  for (const key of PDFJS.keys) if (!manifest[key]) fail(`el manifest no tiene ${key}`);
+  // pdf.js incrustado en otro chunk (un import estático con un solo importador
+  // no deja entrada propia en el manifest): su código lleva la versión como
+  // texto ("6.4.299"), que el código propio nunca tiene.
+  const installed = JSON.parse(fs.readFileSync(path.resolve("node_modules/pdfjs-dist/package.json"), "utf8")).version;
+  for (const file of js) {
+    if (fs.readFileSync(file, "utf8").includes(`"${installed}"`)) {
+      fail(`${path.basename(file)} contiene código de pdf.js: solo puede descargarse aparte, al abrir un PDF`);
+    }
+  }
+  // Versión exacta (sin ^ ni ~): una actualización no puede mover el tope sin un cambio a la vista.
+  const pinned = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8")).dependencies?.["pdfjs-dist"];
+  if (!/^\d+\.\d+\.\d+$/.test(pinned ?? ""))
+    fail(`package.json: pdfjs-dist debe ir con versión exacta (tiene "${pinned}")`);
+  const sw = fs.readFileSync(path.join(DIST, "service-worker.js"), "utf8");
+  for (const file of pdfjsFiles) {
+    if (sw.includes(path.basename(file))) fail(`service-worker.js precachea ${path.basename(file)}`);
   }
 }
 
