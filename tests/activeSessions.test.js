@@ -29,7 +29,7 @@ const CURRENT = {
   current: true,
   createdAt: "2026-10-09T14:00:00.000Z",
   lastSeenAt: "2026-10-09T15:30:00.000Z",
-  ip: "181.49.12.x",
+  ip: "203.0.113.x",
   location: "Bogotá, Colombia",
   device: "Chrome en Windows",
 };
@@ -87,7 +87,7 @@ describe("lista", () => {
     expect(current.querySelector(".badge").textContent).toBe("Esta sesión");
     expect(current.querySelector("[data-close]")).toBeNull(); // la actual no se cierra aquí
     expect(field(current, "Ubicación aproximada")).toBe("Bogotá, Colombia");
-    expect(field(current, "IP")).toBe("181.49.12.x");
+    expect(field(current, "IP")).toBe("203.0.113.x");
     expect(field(phone, "IP")).toBe("2800:e2::/48");
     expect(field(current, "Inició")).toMatch(/2026/);
     expect(field(current, "Última actividad")).toMatch(/2026/);
