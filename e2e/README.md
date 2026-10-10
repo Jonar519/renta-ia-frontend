@@ -44,6 +44,9 @@ reales se prueba a mano (ver la lista del README raíz).
    set DATABASE_URL=postgresql://postgres:postgres@localhost:5433/renta_ia_e2e
    set REDIS_URL=redis://localhost:6379/1
    set CORS_ORIGIN=http://localhost:4173
+   rem MFA obligatoria para admin: globalSetup.js activa la del admin del seed. Clave SOLO de pruebas,
+   rem generada con: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   set MFA_ENCRYPTION_KEY=<la clave generada>
    set PORT=4100
    npm run dev
    ```
@@ -66,7 +69,11 @@ reales se prueba a mano (ver la lista del README raíz).
    ```
 
 Usa el Chrome instalado (`channel: "chrome"`); en CI usa el Chromium de Playwright.
-Resultados medidos el 2026-09-28: 3 corridas seguidas, 3 aprobadas (~10,6 s cada una).
+La suite completa (44 pruebas, 18 archivos) pasó en el cierre de B18, el 2026-10-10.
+
+Si repites la suite muchas veces seguidas, los límites por IP de Redis se acumulan: bórralos
+de la base de Redis de las pruebas antes de correrla (`redis-cli -n 1 --scan --pattern "rl:*"`
+y `DEL` de esas claves).
 
 ## En CI
 
