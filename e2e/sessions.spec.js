@@ -33,10 +33,15 @@ test("ver las sesiones, cerrar la del otro dispositivo y luego todas las demás"
   await expect(sessions).toHaveCount(3);
   const current = sessions.filter({ hasText: "Esta sesión" });
   await expect(current).toHaveCount(1);
-  await expect(current).toContainText("Chrome en Windows");
+  // La etiqueta corta del equipo, en el sistema donde corra la prueba (Windows en local,
+  // Linux en CI), y nunca la cadena larga del navegador.
+  await expect(current.locator(".session__device")).toHaveText(/^Chrome en (Windows|Linux|macOS) Esta sesión$/);
+  await expect(current).not.toContainText("Mozilla/5.0");
   await expect(current).toContainText("Ubicación aproximada");
   await expect(current).toContainText("Red local"); // el stack E2E corre en esta máquina
-  await expect(current).toContainText(/127\.0\.0\.x|::\/48/);
+  // La IP recortada (sin el último octeto, o el /48 en IPv6), venga de la red que venga
+  // (loopback en local y en CI, la red de Docker si el navegador corre en un contenedor).
+  await expect(current).toContainText(/(?<!\d)\d{1,3}\.\d{1,3}\.\d{1,3}\.x\b|[0-9a-f:]*:\/48/);
   await expect(current.getByRole("button")).toHaveCount(0);
   const phoneRow = sessions.filter({ hasText: "Safari en iOS" });
   await expect(phoneRow).toHaveCount(1);

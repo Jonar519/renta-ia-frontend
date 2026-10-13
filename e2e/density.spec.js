@@ -23,6 +23,8 @@ const clippedCells = (page) =>
       .filter((td) => td.scrollWidth > td.clientWidth + 1)
       .map((td) => `${td.dataset.label}: ${td.textContent.trim().slice(0, 40)}`)
   );
+/** La respuesta que guarda la densidad en la cuenta. */
+const isDensitySave = (r) => r.url().endsWith("/api/users/me") && r.request().method() === "PATCH";
 const pageOverflow = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
@@ -51,11 +53,14 @@ test("la densidad elegida viaja con la cuenta: otro contexto del navegador la re
   const comfortable = await cellPadding(page, "#clients-tbody td[data-label]");
   await expectNoSeriousA11yViolations(page, testInfo, "clientes-con-selector");
 
+  // La espera de la respuesta empieza ANTES del clic: si empezara después, una respuesta
+  // rápida (p. ej. en el runner de Linux del CI) llegaría antes y la espera no terminaría.
+  const savedCompact = page.waitForResponse(isDensitySave);
   await selector.getByLabel("Compacta").check();
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   expect(await cellPadding(page, "#clients-tbody td[data-label]")).toBeLessThan(comfortable);
   // Se guardó en la cuenta: recargar (la sesión se recupera del servidor) la conserva.
-  await page.waitForResponse((r) => r.url().endsWith("/api/users/me") && r.request().method() === "PATCH");
+  await savedCompact;
   await page.reload();
   await expect(page.getByRole("group", { name: "Densidad de la tabla" }).getByLabel("Compacta")).toBeChecked();
 
@@ -74,8 +79,9 @@ test("la densidad elegida viaja con la cuenta: otro contexto del navegador la re
   await expectNoSeriousA11yViolations(other, testInfo, "documentos-compacta");
 
   // Volver a cómoda desde el otro contexto: el primero la recibe al recargar.
+  const savedComfortable = other.waitForResponse(isDensitySave);
   await other.getByRole("group", { name: "Densidad de la tabla" }).first().getByLabel("Cómoda").check();
-  await other.waitForResponse((r) => r.url().endsWith("/api/users/me") && r.request().method() === "PATCH");
+  await savedComfortable;
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-density", "comfortable");
 });
