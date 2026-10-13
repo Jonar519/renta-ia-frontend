@@ -1,5 +1,6 @@
 import { getState } from "../state/store.js";
-import { logout } from "../auth/session.js";
+import { registerCleanup } from "../router.js";
+import { bindUserMenu, userMenuHtml } from "./userMenu.js";
 
 export function renderSidebar(active) {
   const link = (id, href, label) =>
@@ -10,19 +11,14 @@ export function renderSidebar(active) {
       <div class="sidebar__brand">Renta IA</div>
       <nav class="sidebar__nav" aria-label="Principal">
         ${link("dashboard", "#/", "Clientes")}
+        ${isAdmin ? link("users", "#/admin/users", "Usuarios") : ""}
         ${isAdmin ? link("performance", "#/performance", "Rendimiento") : ""}
       </nav>
-      <button id="btn-logout" class="sidebar__logout" type="button">Cerrar sesión</button>
+      ${userMenuHtml()}
     </aside>
   `;
 }
 
 export function bindSidebarEvents(root) {
-  const logoutBtn = root.querySelector("#btn-logout");
-  if (!logoutBtn) return;
-
-  logoutBtn.addEventListener("click", () => {
-    logoutBtn.disabled = true;
-    logout();
-  });
+  registerCleanup(bindUserMenu(root));
 }

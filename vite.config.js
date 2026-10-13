@@ -4,9 +4,15 @@ import { createHash } from "node:crypto";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-// Fuentes que se usan en la primera pintura (texto del login y títulos):
-// se precargan para que no esperen a que el navegador descubra el CSS.
-const PRELOAD_FONTS = [/inter-latin-wght-normal-[\w-]+\.woff2$/, /source-serif-4-latin-600-normal-[\w-]+\.woff2$/];
+// Fuentes que se usan en la primera pintura (texto del login y títulos) y la
+// de las cifras (contenido central de la app; sin precarga "saltarían" al
+// llegar la fuente): se precargan para que no esperen a que el navegador
+// descubra el CSS.
+const PRELOAD_FONTS = [
+  /inter-latin-wght-normal-[\w-]+\.woff2$/,
+  /source-serif-4-latin-600-normal-[\w-]+\.woff2$/,
+  /jetbrains-mono-latin-400-normal-[\w-]+\.woff2$/,
+];
 
 /**
  * Inserta <link rel="preload" as="font"> con el nombre FINAL (con hash) de
@@ -31,6 +37,9 @@ function preloadFonts() {
   };
 }
 
+/** Los archivos de pdf.js en dist/assets (la biblioteca, su worker y los módulos con su URL). */
+export const PDFJS_ASSET = /(^|\/)pdf(\.worker)?\.min-[\w-]+\.m?js$/;
+
 /**
  * Emite /service-worker.js en cada build a partir de src/sw/service-worker.js,
  * con el id del build y la lista real de archivos a precachear. El id es un
@@ -53,7 +62,9 @@ function serviceWorker() {
         "/index.html",
         "/offline.html",
         "/favicon.svg",
-        ...files.filter((file) => file.startsWith("assets/")).map((f) => `/${f}`),
+        // pdf.js (excepción D3, ~496 KB) NO se precachea: se descarga solo al
+        // abrir un PDF (scripts/check-bundle.mjs lo verifica).
+        ...files.filter((file) => file.startsWith("assets/") && !PDFJS_ASSET.test(file)).map((f) => `/${f}`),
       ];
       const source = template
         .replace('const BUILD_ID = "__BUILD_ID__";', `const BUILD_ID = "${buildId}";`)
@@ -85,7 +96,8 @@ export function buildCsp(apiUrl) {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self'",
-    "img-src 'self' data:",
+    // blob: la foto de perfil, que se pide con el token y se muestra como blob (B12).
+    "img-src 'self' data: blob:",
     "font-src 'self'",
     `connect-src 'self' ${api.origin} ${ws}`,
     "worker-src 'self'",
@@ -126,6 +138,26 @@ export default defineConfig(({ mode }) => ({
     // Las fuentes nunca se incrustan como base64 dentro del CSS (bloquearían
     // su descarga y no se podrían precargar ni cachear aparte).
     assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined),
+    // Grafo de módulos para el presupuesto de JS por rol (scripts/check-bundle.mjs,
+    // que lo borra al terminar: no se publica).
+    manifest: true,
+    rollupOptions: {
+      output: {
+        // Las etiquetas del detalle de cliente las usan el detalle y su pestaña
+        // Documentos (chunk aparte desde B16): en su propio chunk compartido. Si
+        // quedaran dentro del chunk del detalle, este tendría que exportarlas y
+        // Rollup dejaría de tratarlo como el de su ruta (el presupuesto por rol
+        // no lo encontraría).
+        manualChunks: (id) => (/[\\/]views[\\/]clientDetail[\\/]labels\.js$/.test(id) ? "clientLabels" : undefined),
+        // Las vistas que viven en un "index.js" de su carpeta (clientDetail/)
+        // toman el nombre de la carpeta: si no, su chunk se llamaría "index-…",
+        // igual que el de entrada, y el presupuesto por chunk no podría nombrarlo.
+        chunkFileNames: (chunk) => {
+          const folder = chunk.facadeModuleId?.match(/[\\/]views[\\/](\w+)[\\/]index\.js$/)?.[1];
+          return `assets/${folder ?? "[name]"}-[hash].js`;
+        },
+      },
+    },
   },
   test: {
     environment: "jsdom",

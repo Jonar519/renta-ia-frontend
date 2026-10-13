@@ -1,51 +1,28 @@
-import { expect, test } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { expect, test } from "./fixtures.js";
+import { expectNoSeriousA11yViolations } from "./a11y.js";
+import { createAccountByInvitation, loginThroughUi } from "./helpers.js";
 import { certificatePdf } from "./pdf.js";
 
 /**
  * Flujo crítico, de punta a punta y sin atajos por la API:
- * registro → crear cliente → subir documento → ver el cambio de estado EN
+ * cuenta invitada (sin registro público) → login → crear cliente → subir documento → ver el cambio de estado EN
  * TIEMPO REAL (WebSocket, sin recargar) → alerta → resumen → chat.
  * La IA es simulada (AI_PROVIDER=mock): sus respuestas llevan la marca
  * "[Respuesta simulada · ...]".
  */
 
-/** axe: falla ante violaciones "serious" o "critical" (WCAG 2.1 A/AA). */
-async function expectNoSeriousA11yViolations(page, testInfo, name) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-  await testInfo.attach(`axe-${name}.json`, {
-    body: JSON.stringify(results.violations, null, 2),
-    contentType: "application/json",
-  });
-  const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(
-    serious.map((v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`),
-    `Violaciones de accesibilidad en ${name}`
-  ).toEqual([]);
-}
-
-test("registro → cliente → documento en tiempo real → alerta → resumen → chat", async ({ page }, testInfo) => {
-  const cspViolations = [];
-  await page.exposeFunction("__reportCsp", (v) => cspViolations.push(v));
-  await page.addInitScript(() => {
-    document.addEventListener("securitypolicyviolation", (e) =>
-      window.__reportCsp(`${e.violatedDirective} ${e.blockedURI}`)
-    );
-  });
-
-  // --- Registro ---
+test("invitación → login → cliente → documento en tiempo real → alerta → resumen → chat", async ({
+  page,
+}, testInfo) => {
+  // --- Cuenta por invitación + login ---
   await page.goto("/#/login");
-  await expect(page.getByRole("heading", { name: "Renta IA" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Inicia sesión", level: 1 })).toBeVisible();
+  // Sin registro público: no hay pestaña ni botón "Crear cuenta".
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /crear cuenta/i })).toHaveCount(0);
   await expectNoSeriousA11yViolations(page, testInfo, "login");
 
-  await page.getByRole("tab", { name: "Crear cuenta" }).click();
-  const register = page.locator("#register-form");
-  await register.getByLabel("Nombre").fill("Contadora E2E");
-  await register.getByLabel("Correo").fill(`e2e-${Date.now()}@test.local`);
-  await register.getByLabel("Contraseña").fill("caballo correcto bateria grapa");
-  await register.getByRole("button", { name: "Crear cuenta" }).click();
-
-  await expect(page.getByRole("heading", { name: "Tus clientes" })).toBeVisible();
+  await loginThroughUi(page, await createAccountByInvitation({ name: "Contadora E2E" }));
   // El token de acceso nunca queda en localStorage.
   const storage = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   expect(storage).not.toMatch(/eyJ[\w-]+\.[\w-]+\./);
@@ -99,5 +76,4 @@ test("registro → cliente → documento en tiempo real → alerta → resumen �
   await expect(page.locator("#chat-log")).toContainText("Respuesta simulada", { timeout: 30_000 });
 
   await expectNoSeriousA11yViolations(page, testInfo, "detalle-cliente");
-  expect(cspViolations, "Violaciones de la Content-Security-Policy").toEqual([]);
 });

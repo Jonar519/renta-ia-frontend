@@ -29,7 +29,7 @@ En desarrollo, `localhost:5173` y `localhost:4000` son el mismo sitio (el puerto
 `vite.config.js` (`buildCsp`) agrega en el build un `<meta http-equiv="Content-Security-Policy">`:
 
 ```
-default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;
+default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:;
 font-src 'self'; connect-src 'self' <VITE_API_URL> <ws(s) de VITE_API_URL>;
 worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-src 'none';
 base-uri 'self'; form-action 'self'

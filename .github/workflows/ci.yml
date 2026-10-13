@@ -25,8 +25,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       # "build" incluye el presupuesto de tamaño del bundle (scripts/check-bundle.mjs):
-      # falla si el JS de entrada, algún chunk, el CSS o las fuentes crecen de más.
+      # falla si el JS de entrada, algún chunk, el JS de algún rol, el CSS o las
+      # fuentes crecen de más.
       - run: npm run build
+      # El manifest de Vite (rutas de src/) solo sirve para medir: no se publica.
+      - name: El build no publica el manifest
+        run: test ! -e dist/.vite
 
       # Lighthouse CI sobre el build (perfil móvil simulado, 3 corridas) con
       # presupuestos: LCP < 2,5 s, CLS < 0,1, TBT < 200 ms (proxy de INP en
@@ -97,11 +101,21 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/renta_ia_e2e
+      # e2e/helpers.js crea cuentas por invitación: llama a la API y lee el
+      # enlace en email_outbox (correo simulado, el valor por defecto).
+      E2E_API_URL: http://localhost:4000
       REDIS_URL: redis://localhost:6379
       NODE_ENV: e2e
       AI_PROVIDER: mock
       AI_MOCK_LATENCY_MS: "1500"
+      # Toda la suite entra desde la misma IP: con el límite real de inicios de
+      # sesión por IP, las últimas pruebas reciben 429. Solo pruebas (la API lo
+      # rechaza con NODE_ENV=production).
+      RATE_LIMIT_SCALE: "3"
       JWT_SECRET: secreto-solo-para-e2e-en-ci
+      # MFA obligatorio para admin (B9): e2e/globalSetup.js activa el del seed.
+      # Clave de 32 bytes SOLO para este job (no protege datos reales).
+      MFA_ENCRYPTION_KEY: ZTJlLWNpLXJlbnRhLWlhLW1mYS1jbGF2ZS0zMmJ5dGU=
       CORS_ORIGIN: http://localhost:4173
       STORAGE_LOCAL_PATH: /tmp/renta-ia-e2e-uploads
       PORT: "4000"
@@ -126,6 +140,11 @@ jobs:
           node-version: 24.13.1
       - name: Migraciones
         run: bash _database/scripts/migrate.sh
+      # Usuarios del seed con roles distintos (admin, contador, asistente): los
+      # usa e2e/guard.spec.js para probar el rebote por rol. Solo datos de
+      # desarrollo/pruebas (decisión D1).
+      - name: Datos de prueba (seed)
+        run: bash _database/scripts/seed.sh
       - name: API y worker (IA simulada)
         working-directory: _backend
         run: |

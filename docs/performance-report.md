@@ -174,14 +174,26 @@ En el "antes", FCP y LCP coinciden porque la hoja de estilos de Google Fonts, de
 
 `scripts/check-bundle.mjs` se ejecuta con `npm run build` (y por lo tanto en CI) y **falla** si se excede un límite. Tamaños gzip nivel 9, medidos al fijar el presupuesto:
 
-| Recurso                               |   Medido |     Límite |
-| ------------------------------------- | -------: | ---------: |
-| JS de entrada                         |  2,69 KB |       4 KB |
-| Chunk más grande (detalle de cliente) |  7,24 KB |      10 KB |
-| JS total (todos los chunks)           | 22,88 KB |      30 KB |
-| CSS total                             |  2,99 KB |       4 KB |
-| Fuentes (woff2)                       | 68,15 KB |      75 KB |
-| Fuentes de Google en `index.html`     |  ninguna | prohibidas |
+| Recurso                                  |   Medido |     Límite |
+| ---------------------------------------- | -------: | ---------: |
+| JS de entrada                            |  3,84 KB |       4 KB |
+| Cada chunk (salvo excepciones)           |  4,24 KB |       6 KB |
+| Chunk del detalle de cliente (excepción) |  8,32 KB |       9 KB |
+| JS del invitado (sin sesión)             | 23,31 KB |      24 KB |
+| JS del contador / asistente              | 46,36 KB |      48 KB |
+| JS del cliente del portal                | 45,75 KB |      48 KB |
+| JS del admin                             | 51,98 KB |      54 KB |
+| CSS total                                |  5,30 KB |     5,5 KB |
+| Fuentes (woff2)                          | 88,82 KB |      95 KB |
+| Fuentes de Google en `index.html`        |  ninguna | prohibidas |
+
+Fase 5 (B1): el presupuesto de fuentes sube de 75 a 95 KB por JetBrains Mono 400 (20,67 KB) para las cifras; medición y motivo en `docs/dark-mode.md` §4.
+
+Fase 5 (B2): JS total 30 → 34 KB (medido 30,08 KB) y CSS total 4 → 5 KB (medido 4,19 KB) por los estados explícitos de todas las vistas; detalle en `docs/ui-states.md`.
+
+Fase 5 (B6, aprobado): JS total 34 → 42 KB (medido 38,69 KB) por las pantallas de invitación (`adminUsers` 3,47 KB y `completeAccount` 2,17 KB), que solo descarga quien entra a esas rutas. Con dos condiciones: el JS de entrada se mantiene en 4 KB (medido 3,93 KB; los textos de los avisos y los nombres de rol salieron de la entrada) y un **tope de 6 KB por chunk**, con una única excepción documentada: el detalle de cliente (9 KB; medido 8,32 KB). El "chunk más grande ≤ 10 KB" anterior queda reemplazado por esas dos reglas.
+
+Fase 5 (B9, aprobado): JS total 42 → 46 KB (medido 45,91 KB) por las pantallas de la verificación en dos pasos: `security.view` 3,25 KB (solo se descarga al entrar a "Seguridad") y el segundo paso del login (+0,77 KB en `login.view`). Entrada 3,84 / 4 KB y todos los chunks bajo 6 KB. **QR:** medido antes de decidir, una librería en el navegador pesaba 4,4 KB (`uqr`, `lean-qr`), 7,9 KB (`qrcode-generator`) o 9,7 KB (`qrcode`) en gzip; se genera en el servidor (SVG en la respuesta de `/setup`, mostrado como `<img src="data:…">`) y cuesta 0 KB en el cliente. La cifra se mide con el build por defecto (el de CI); la URL de la API queda dentro del JS y la cambia unas centésimas (45,91 KB con `localhost:4000`, 45,96 KB con una URL de producción larga).
 
 ## 8. Métricas de usuarios reales (RUM)
 
@@ -192,3 +204,13 @@ La app reporta sus propias Web Vitals (`src/metrics/webVitals.js`), y un adminis
 - **Privacidad:** solo la ruta normalizada (`/clients/:id`) y una categoría de dispositivo. Sin usuario, IP, user-agent ni URL real. Se envía con `navigator.sendBeacon` como `text/plain`, que no dispara preflight CORS.
 - **Limitación:** en una SPA, LCP, CLS y TTFB se miden una vez por carga de página (la ruta inicial). Las navegaciones internas por hash no generan un LCP nuevo. INP sí cubre todas las interacciones de la sesión.
 - **No medido:** todavía no hay datos de usuarios reales en producción (la app no está desplegada). La vista funciona con los datos que genere el uso local.
+
+Fase 5 (aprobado antes de B10): **el tope de JS total se reemplaza por un tope por rol.** El total sumaba todos los chunks, incluidos los que un rol nunca descarga (las pantallas de admin para un contador, las de sesión para un invitado). El chequeo (`scripts/check-bundle.mjs`) suma, para cada rol, lo que puede llegar a descargar en el peor caso: el chunk de entrada, cada pantalla de la tabla de rutas de `src/main.js` a la que tiene acceso (con sus imports estáticos y diferidos), lo que se carga tras el load y sus Web Workers. El grafo sale del manifest de Vite (`build.manifest`), que el chequeo borra al terminar: no se publica (CI lo verifica). Un chunk que ningún rol descarga hace fallar el chequeo, y también una ruta con un acceso que el chequeo no reconoce. Se mantienen el JS de entrada (4 KB) y el tope por chunk (6 KB, excepción `clientDetail` 9 KB). pdf.js (B17, decisión D3) quedará fuera de los topes por rol, con su propio tope medido, solo si se descarga únicamente al abrir un documento.
+
+Fase 5 (B10, aprobado): CSS total 5 → 5,5 KB (medido 5,15 KB) por el login rediseñado (disposición formulario + flujo de ejemplo y sus tarjetas). El login sumó 0,57 KB de JS a cada rol (chunk `login.view` 1,60 → 2,15 KB); invitado 22,29 / 24 KB.
+
+Fase 5 (B10, cambio pedido): el flujo de ejemplo del login se reemplazó por una composición de marca sin cifras (renglones y línea de margen solo con CSS). Se eliminaron el CSS y el JS del flujo: JS −0,29 KB por rol (invitado 22,00 KB), CSS 5,16 / 5,5 KB.
+
+Fase 5 (B12): +2 KB a los topes de los roles con sesión (46 → 48 KB; admin 52 → 54 KB) por la foto de perfil: recortador con canvas 1,30 KB (se carga solo al elegir una foto), descarga con la sesión y caché como blob 0,55 KB, sección del perfil +0,64 KB y foto en el menú +0,32 KB. El invitado no cambia (23,31 / 24 KB). La CSP agrega `blob:` en `img-src` para mostrar la foto. **Registro de la decisión:** la subida se aplicó sin una aprobación escrita; tras B12 la persona responsable decidió conservarla y la cuenta como decisión suya, tomada entonces. Desde ahí, ningún tope sube sin su confirmación escrita.
+
+Fase 5 (antes de B13, aprobado por escrito): **primera carga estricta**, además del peor caso por rol. Lo que se descarga al abrir la app en la pantalla de llegada sin tocar nada más (entrada + sus imports + la pantalla + todo lo que `main.js` carga tras el load; con sesión, también el tiempo real): invitado en `#/login` **18,17 / 19 KB**, con sesión en `#/` (Clientes) **21,65 / 22 KB**. La definición cuenta también el aviso de rebote (`routeNotice`), que llega en la primera carga cuando alguien abre una URL protegida; con una definición más estrecha se habían informado 17,79 y 20,75 KB. El tope por chunk sigue en 6 KB. Los topes del peor caso por rol para B13–B18 los **confirmó por escrito** el usuario antes de B14 (estimación por bloque + ~2 KB): invitado 24, contador y asistente 57, cliente del portal 55 y admin 63 KB. Medido tras B13: 23,35 · 47,79 · 47,79 · 47,18 · 53,40 KB. pdf.js sigue fuera, con su tope propio medido en B17. Primera carga con sesión: 22 → **23 KB** en B15 (decisión escrita del usuario, 9 de octubre de 2026): el selector de densidad Cómoda/Compacta en Clientes, la pantalla de llegada, la lleva a 22,39 KB; el selector solo pesa unos 0,6 KB y achicarlo exigiría quitar texto o comportamiento. Invitado (19 KB), 6 KB por chunk y los topes de peor caso no cambian. CSS total: 5,5 → **7 KB** para B15–B18 (confirmado por escrito tras B14; medido 5,43 KB, estimado 6,43 KB hasta B18).

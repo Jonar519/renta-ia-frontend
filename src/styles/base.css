@@ -13,8 +13,8 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: var(--fs-base);
-  color: var(--color-ink-900);
-  background: var(--color-bg);
+  color: var(--text);
+  background: var(--bg-app);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -24,7 +24,7 @@ h3 {
   font-family: var(--font-serif);
   font-weight: 600;
   margin: 0;
-  color: var(--color-navy-900);
+  color: var(--text-strong);
 }
 
 p {
@@ -33,7 +33,14 @@ p {
 }
 
 a {
-  color: var(--color-navy-500);
+  color: var(--text-link);
+}
+
+/* Código y rutas (p. ej. en Rendimiento): la misma monoespaciada que las cifras,
+   no la que el navegador trae por defecto. */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
 }
 
 button,
@@ -69,7 +76,7 @@ ul {
   z-index: 200;
   padding: 10px 16px;
   background: var(--color-navy-900);
-  color: #ffffff;
+  color: var(--color-white);
   border-radius: var(--radius-sm);
   transform: translateY(-200%);
 }
@@ -83,13 +90,20 @@ ul {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-navy-500);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
+/* Movimiento reducido: sin animaciones ni transiciones en ninguna parte.
+   iteration-count 1: una animación infinita de 0.001ms seguiría en bucle
+   (parpadeo y CPU); así queda en su estado final, estática. */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

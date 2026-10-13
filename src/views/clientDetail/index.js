@@ -1,11 +1,10 @@
 import { clientsApi } from "../../api/clients.api.js";
-import { showErrorToast } from "../../components/toast.js";
+import { bindRetry, errorStateHtml, skeletonBlockHtml } from "../../components/states.js";
 import { renderSidebar, bindSidebarEvents } from "../../components/sidebar.js";
 import { bindTabs } from "../../components/tabs.js";
 import { registerCleanup } from "../../router.js";
 import { getRealtimeStatus, onDocumentUpdate, onRealtimeStatus } from "../../realtime/realtime.js";
 import { createPoller } from "../../realtime/poller.js";
-import { createDocumentsSection, documentsPanelHtml } from "./documents.section.js";
 import { alertsPanelHtml, createAlertsSection } from "./alerts.section.js";
 import { createSummarySection, summaryPanelHtml } from "./summary.section.js";
 import { chatPanelHtml, createChatSection } from "./chat.section.js";
@@ -13,14 +12,17 @@ import { can } from "../../auth/permissions.js";
 
 export { documentStatus } from "./labels.js";
 
+// Documentos va en su propio chunk (B16): el panel se pinta con un skeleton
+// mientras llega (se pide en paralelo con los datos del cliente).
 const TABS = [
-  ["documents", "Documentos", documentsPanelHtml],
+  ["documents", "Documentos", () => skeletonBlockHtml({ lines: 4 })],
   ["alerts", "Alertas", alertsPanelHtml],
   ["summary", "Resumen", summaryPanelHtml, "ai.use"],
   ["chat", "Asistente IA", chatPanelHtml, "ai.use"],
 ];
 
 export async function renderClientDetail(root, clientId) {
+  const documentsModule = import("./documents.section.js");
   // El resumen y el chat consumen créditos de IA: no se muestran al portal
   // del contribuyente (rol client, solo lectura; la API también lo impide).
   const tabs = TABS.filter(([, , , permission]) => !permission || can(permission));
@@ -32,8 +34,8 @@ export async function renderClientDetail(root, clientId) {
         <a href="#/" class="link link--back">Volver a clientes</a>
         <header class="main__header">
           <div>
-            <h1 class="page-title" id="client-name">Cargando cliente...</h1>
-            <p class="page-subtitle" id="client-meta"></p>
+            <h1 class="page-title" id="client-name"><span class="visually-hidden">Cargando cliente…</span><span class="skeleton skeleton--title" aria-hidden="true"></span></h1>
+            <div class="page-subtitle" id="client-meta"><span class="skeleton skeleton--w2" aria-hidden="true"></span></div>
           </div>
           <p class="live-status" id="live-status" role="status" aria-live="polite"></p>
         </header>
@@ -65,6 +67,14 @@ export async function renderClientDetail(root, clientId) {
   const viewAbort = new AbortController();
 
   const alerts = createAlertsSection(root, clientId);
+  const documentsPanel = root.querySelector("#panel-documents");
+  const { createDocumentsSection, documentsPanelHtml } = await documentsModule;
+  // Si mientras llegaba el chunk se salió de la vista, no hay nada que montar.
+  if (!documentsPanel.isConnected) {
+    viewAbort.abort();
+    return;
+  }
+  documentsPanel.innerHTML = documentsPanelHtml();
   // Cuando un documento termina, las reglas pueden haber creado alertas nuevas.
   const documents = createDocumentsSection(root, clientId, {
     signal: viewAbort.signal,
@@ -124,18 +134,23 @@ export async function renderClientDetail(root, clientId) {
     viewAbort.abort();
   });
 
+  const clientMeta = root.querySelector("#client-meta");
+  bindRetry(clientMeta, () => loadClient());
+
   async function loadClient() {
     try {
       const client = await clientsApi.getById(clientId);
       // Se actualiza el texto del <h1> existente (no se reemplaza el nodo)
       // para no perder el foco que el router le dio al cambiar de ruta.
       root.querySelector("#client-name").textContent = client.fullName;
-      root.querySelector("#client-meta").textContent = client.email
-        ? `${client.documentNumber} · ${client.email}`
-        : client.documentNumber;
+      const documentNumber = document.createElement("span");
+      documentNumber.className = "num";
+      documentNumber.textContent = client.documentNumber;
+      clientMeta.replaceChildren(documentNumber, client.email ? ` · ${client.email}` : "");
     } catch (err) {
+      if (err.name === "AbortError") return;
       root.querySelector("#client-name").textContent = "Cliente no disponible";
-      showErrorToast(err);
+      clientMeta.innerHTML = errorStateHtml(err.message, { title: "No se pudieron cargar los datos del cliente." });
     }
   }
 
@@ -143,3 +158,6 @@ export async function renderClientDetail(root, clientId) {
   await Promise.all([loadClient(), documents.load(), alerts.load()]);
   syncLiveMode();
 }
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root, params) => renderClientDetail(root, params.id);

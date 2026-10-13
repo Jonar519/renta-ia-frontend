@@ -6,8 +6,17 @@ import { defineConfig } from "@playwright/test";
  * El frontend se sirve con `vite preview` del build (con su CSP), compilado
  * con VITE_API_URL apuntando a esa API. Ver e2e/README.md.
  */
+// Cada corrida guarda sus fallos en su propia carpeta (test-results/<fecha>):
+// Playwright vacía outputDir al empezar, y así una corrida no borra las trazas
+// de la anterior. Los workers heredan la variable del proceso principal, por
+// eso todos escriben en la misma carpeta.
+process.env.E2E_RUN_ID ??= new Date().toISOString().replace(/[:.]/g, "-");
+
 export default defineConfig({
   testDir: "e2e",
+  outputDir: `test-results/${process.env.E2E_RUN_ID}`,
+  // El admin del seed activa su MFA (obligatorio para admin) antes de las pruebas.
+  globalSetup: "./e2e/globalSetup.js",
   timeout: 90_000,
   expect: { timeout: 20_000 },
   retries: process.env.CI ? 1 : 0,
@@ -16,6 +25,7 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL || "http://localhost:4173",
     // En local se usa el Chrome instalado; en CI, el Chromium de Playwright.
     channel: process.env.CI ? undefined : "chrome",
+    // Traza solo de las pruebas que fallan (se borra si la prueba pasa).
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     locale: "es-CO",

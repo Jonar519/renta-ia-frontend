@@ -7,13 +7,14 @@
  *  - Solo lo que se usa (medido en docs/performance-report.md):
  *      Inter variable, subconjunto latín (todos los pesos)   48,3 KB
  *      Source Serif 4 600, subconjunto latín (títulos)        21,5 KB
+ *      JetBrains Mono 400, subconjunto latín (cifras)         20,7 KB
  *    frente a 166,7 KB que descargaba Google Fonts (Source Serif 4 variable
  *    con eje de tamaño óptico, que la app no usa).
  *  - El subconjunto latín cubre español (á é í ó ú ñ ü ¿ ¡).
  *  - font-display: swap → el texto se pinta de inmediato con la fuente de
  *    respaldo y cambia cuando llega la web font (no bloquea el LCP).
  *  - Los archivos salen con hash en el nombre (caché inmutable) y
- *    vite.config.js agrega <link rel="preload"> para ambos.
+ *    vite.config.js agrega <link rel="preload"> para las tres.
  */
 @font-face {
   font-family: "Inter Variable";
@@ -29,4 +30,19 @@
   font-display: swap;
   font-weight: 600;
   src: url("../../node_modules/@fontsource/source-serif-4/files/source-serif-4-latin-600-normal.woff2") format("woff2");
+}
+
+/*
+ * JetBrains Mono 400, subconjunto latín (20,67 KB): cifras y datos tabulares
+ * (montos, fechas, años, números de documento). Estática y no variable
+ * (39,46 KB): las cifras siempre van en peso 400. Se precarga como las otras
+ * dos: las cifras son el contenido central y no deben "saltar" al cambiar de
+ * la fuente de respaldo a la definitiva.
+ */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
 }

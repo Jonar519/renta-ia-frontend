@@ -1,3 +1,11 @@
+/**
+ * Aviso flotante breve. Tipos: info, success, warning, error.
+ *
+ * Los toasts no tienen nada clicable: #toast-root lleva pointer-events: none
+ * (components.css) y los toasts lo heredan, así que NUNCA bloquean los clics
+ * de lo que tapan (e2e/states.spec.js lo verifica). Si algún día un aviso
+ * necesita un botón, debe ser otro componente (como updateBanner.js).
+ */
 export function showToast(message, type = "info") {
   const root = document.getElementById("toast-root");
   if (!root) return;
@@ -7,6 +15,7 @@ export function showToast(message, type = "info") {
   // #toast-root es una región aria-live="polite"; los errores se anuncian
   // de inmediato (role="alert" = assertive).
   if (type === "error") toast.setAttribute("role", "alert");
+  toast.dataset.type = type;
   toast.textContent = message;
   root.appendChild(toast);
 

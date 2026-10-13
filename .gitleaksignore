@@ -1,0 +1,6 @@
+# Falsos positivos revisados de gitleaks. Formato: <commit>:<archivo>:<regla>:<línea>
+# El ignore es por huella de commit: si se reescribe el historial (rebase/squash), hay que regenerarlo.
+#
+# MFA_ENCRYPTION_KEY del job e2e del CI: clave fija SOLO para ese job (base de datos efímera
+# del runner, sin datos reales). La real va en Secrets Manager al desplegar.
+a2a1bcf66f527a71bfad75efce952af79122670a:.github/workflows/ci.yml:generic-api-key:110

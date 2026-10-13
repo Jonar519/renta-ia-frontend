@@ -1,4 +1,8 @@
-import { showUpdateBanner } from "../components/updateBanner.js";
+// El aviso de versión nueva solo hace falta cuando hay una: se descarga en ese
+// momento (y el Service Worker ya lo tiene precacheado). Así no pesa en el
+// chunk de entrada, que tiene presupuesto de 4 KB.
+const showUpdateBanner = (onReload) =>
+  import("../components/updateBanner.js").then((m) => m.showUpdateBanner(onReload));
 
 const UPDATE_CHECK_MS = 30 * 60 * 1000;
 
@@ -27,7 +31,8 @@ export function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", async () => {
+  // main.js lo importa (diferido) ya en el evento load; si aún no cargó, se espera.
+  const register = async () => {
     let registration;
     try {
       registration = await navigator.serviceWorker.register("/service-worker.js");
@@ -59,5 +64,7 @@ export function registerServiceWorker() {
 
     // Una pestaña abierta todo el día también debe enterarse de un despliegue.
     setInterval(() => registration.update().catch(() => {}), UPDATE_CHECK_MS);
-  });
+  };
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }

@@ -1,5 +1,5 @@
 import { appendInBatches } from "../utils/scheduling.js";
-import { escapeHtml } from "../utils/escapeHtml.js";
+import { bindRetry } from "./states.js";
 
 /**
  * Lista paginada por cursor con botón "Cargar más" (clientes, documentos,
@@ -7,14 +7,20 @@ import { escapeHtml } from "../utils/escapeHtml.js";
  * (utils/scheduling.js), así que ni la primera carga ni "Cargar más"
  * producen una tarea larga aunque la página sea grande.
  *
+ * Estados (docs/ui-states.md): skeleton mientras no hay nada que mostrar,
+ * vacío orientativo, error con "Reintentar" que vuelve a pedir SOLO esta
+ * lista (sin recargar la página), y error visible en "Cargar más" (el mismo
+ * botón pasa a decir "Reintentar").
+ *
  * @param {object} options
  * @param {Element} options.container        <tbody> o <ul> donde van los ítems
  * @param {HTMLButtonElement} options.moreButton
  * @param {Element} [options.status]          región aria-live para anunciar cuántos se cargaron
  * @param {(cursor: string | null) => Promise<{ items: any[], nextCursor: string | null }>} options.fetchPage
  * @param {(item: any) => string} options.renderItem  HTML escapado de un ítem
+ * @param {string} options.loadingHtml       skeleton (components/states.js)
  * @param {string} options.emptyHtml
- * @param {(message: string) => string} options.errorHtml
+ * @param {(message: string) => string} options.errorHtml  recibe el mensaje SIN escapar; debe incluir [data-retry]
  * @param {string} options.itemLabel          "documentos", "clientes"… (para los anuncios)
  */
 export function createPagedList({
@@ -23,6 +29,7 @@ export function createPagedList({
   status,
   fetchPage,
   renderItem,
+  loadingHtml,
   emptyHtml,
   errorHtml,
   itemLabel,
@@ -31,10 +38,21 @@ export function createPagedList({
   let nextCursor = null;
   let loading = null;
   let generation = 0; // invalida páginas en vuelo si se recarga la lista
+  const busyTarget = container.closest("table") ?? container;
+  const moreLabel = moreButton.textContent;
+  const moreError = document.createElement("p");
+  moreError.className = "load-more__error";
+  moreError.hidden = true;
+  moreButton.before(moreError);
 
   function updateButton() {
     moreButton.hidden = !nextCursor;
     moreButton.disabled = false;
+  }
+
+  function clearMoreError() {
+    moreError.hidden = true;
+    moreButton.textContent = moreLabel;
   }
 
   async function load(cursor) {
@@ -47,6 +65,11 @@ export function createPagedList({
   async function reload() {
     generation++;
     moreButton.hidden = true;
+    clearMoreError();
+    // Skeleton solo si no hay datos en pantalla: recargar una lista ya pintada
+    // (p. ej. tras crear un cliente) no debe hacerla parpadear.
+    if (items.length === 0) container.innerHTML = loadingHtml;
+    busyTarget.setAttribute("aria-busy", "true");
     try {
       const page = await load(null);
       if (!page) return items;
@@ -58,7 +81,10 @@ export function createPagedList({
       updateButton();
     } catch (err) {
       if (err.name === "AbortError") return items; // se canceló al cambiar de vista
-      container.innerHTML = errorHtml(escapeHtml(err.message));
+      items = [];
+      container.innerHTML = errorHtml(err.message);
+    } finally {
+      busyTarget.removeAttribute("aria-busy");
     }
     return items;
   }
@@ -74,10 +100,14 @@ export function createPagedList({
         items = items.concat(page.items);
         nextCursor = page.nextCursor;
         await appendInBatches(container, page.items, renderItem);
+        clearMoreError();
         if (status) status.textContent = `Se cargaron ${page.items.length} ${itemLabel} más.`;
       } catch (err) {
         if (err.name === "AbortError") return;
-        if (status) status.textContent = `No se pudieron cargar más ${itemLabel}: ${err.message}`;
+        moreError.textContent = `No se pudieron cargar más ${itemLabel}: ${err.message}`;
+        moreError.hidden = false;
+        moreButton.textContent = "Reintentar";
+        if (status) status.textContent = moreError.textContent;
       } finally {
         moreButton.removeAttribute("aria-busy");
         loading = null;
@@ -88,6 +118,7 @@ export function createPagedList({
   }
 
   moreButton.addEventListener("click", () => loadMore());
+  bindRetry(container, () => reload());
 
   return {
     reload,

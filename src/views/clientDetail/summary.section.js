@@ -1,6 +1,12 @@
 import { clientsApi } from "../../api/clients.api.js";
 import { escapeHtml } from "../../utils/escapeHtml.js";
 import { formatCOP } from "./labels.js";
+import { bindRetry, emptyStateHtml, errorStateHtml, skeletonBlockHtml } from "../../components/states.js";
+
+const SUMMARY_IDLE_HTML = emptyStateHtml(
+  "Aún no has generado un resumen.",
+  'Elige el año gravable y pulsa "Generar resumen": verás los totales, una estimación del impuesto y un texto redactado por IA.'
+);
 
 export function summaryPanelHtml() {
   return `
@@ -15,7 +21,7 @@ export function summaryPanelHtml() {
         </label>
         <button type="submit" class="btn btn--primary" id="summary-btn">Generar resumen</button>
       </form>
-      <div id="summary-result" class="summary" aria-live="polite"></div>
+      <div id="summary-result" class="summary" aria-live="polite">${SUMMARY_IDLE_HTML}</div>
     </section>
   `;
 }
@@ -30,7 +36,7 @@ const TOTAL_ROWS = [
 
 function summaryHtml(s) {
   const totals = TOTAL_ROWS.map(
-    ([key, label]) => `<tr><th scope="row">${label}</th><td>${formatCOP(s.totals[key])}</td></tr>`
+    ([key, label]) => `<tr><th scope="row">${label}</th><td class="num num--end">${formatCOP(s.totals[key])}</td></tr>`
   ).join("");
 
   const e = s.estimate;
@@ -40,11 +46,11 @@ function summaryHtml(s) {
       <table class="table table--compact">
         <caption class="visually-hidden">Estimación del impuesto y del saldo</caption>
         <tbody>
-          <tr><th scope="row">Deducciones aceptadas (con topes)</th><td>${formatCOP(e.deductionsApplied)}</td></tr>
-          <tr><th scope="row">Base gravable estimada</th><td>${formatCOP(e.taxableBase)}</td></tr>
-          <tr><th scope="row">Impuesto estimado</th><td>${formatCOP(e.estimatedTax)}</td></tr>
+          <tr><th scope="row">Deducciones aceptadas (con topes)</th><td class="num num--end">${formatCOP(e.deductionsApplied)}</td></tr>
+          <tr><th scope="row">Base gravable estimada</th><td class="num num--end">${formatCOP(e.taxableBase)}</td></tr>
+          <tr><th scope="row">Impuesto estimado</th><td class="num num--end">${formatCOP(e.estimatedTax)}</td></tr>
           <tr><th scope="row">${e.estimatedBalance >= 0 ? "Saldo estimado a pagar" : "Saldo estimado a favor"}</th>
-              <td><strong>${formatCOP(Math.abs(e.estimatedBalance))}</strong></td></tr>
+              <td class="num num--end"><strong>${formatCOP(Math.abs(e.estimatedBalance))}</strong></td></tr>
         </tbody>
       </table>
       ${e.rulesVerified ? "" : `<p class="form-hint">Parámetros tributarios (UVT, tarifas) pendientes de verificar contra la normativa vigente.</p>`}`
@@ -76,8 +82,10 @@ export function createSummarySection(root, clientId) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     button.disabled = true;
-    button.textContent = "Generando...";
+    button.textContent = "Generando…";
+    button.classList.add("ai-processing");
     result.setAttribute("aria-busy", "true");
+    result.innerHTML = skeletonBlockHtml({ lines: 6, label: "Generando el resumen…" });
     try {
       const year = yearSelect.value ? Number(yearSelect.value) : undefined;
       const summary = await clientsApi.summary(clientId, year);
@@ -87,11 +95,14 @@ export function createSummarySection(root, clientId) {
       }
       result.innerHTML = summaryHtml(summary);
     } catch (err) {
-      result.innerHTML = `<p class="form-hint form-hint--error">${escapeHtml(err.message)}</p>`;
+      result.innerHTML = errorStateHtml(err.message, { title: "No se pudo generar el resumen." });
     } finally {
       result.removeAttribute("aria-busy");
+      button.classList.remove("ai-processing");
       button.disabled = false;
       button.textContent = "Generar resumen";
     }
   });
+  // Reintentar = volver a enviar el mismo formulario (mismo año), sin recargar.
+  bindRetry(result, () => form.requestSubmit());
 }

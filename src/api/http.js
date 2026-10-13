@@ -1,4 +1,4 @@
-import { getState } from "../state/store.js";
+import { getState, setAuth } from "../state/store.js";
 import { CSRF_HEADERS, refreshSession } from "../auth/session.js";
 import { getRouteSignal } from "../router.js";
 import { backoffDelay } from "../utils/backoff.js";
@@ -27,18 +27,22 @@ export const NETWORK_ERROR_MESSAGE =
   "No se pudo conectar con el servidor. Revisa tu conexión a internet o intenta de nuevo en unos minutos.";
 export const TIMEOUT_ERROR_MESSAGE = "El servidor tardó demasiado en responder. Intenta de nuevo.";
 export const SESSION_EXPIRED_MESSAGE = "Tu sesión expiró. Inicia sesión de nuevo.";
-// Rutas de login/registro: reciben la cookie de refresh (credentials) y no
+// Rutas de login/invitación: reciben la cookie de refresh (credentials) y no
 // disparan el refresh automático ante un 401 (credenciales incorrectas).
 const isAuthPath = (path) => path.startsWith("/api/auth/");
 export const OFFLINE_WRITE_ERROR = "Sin conexión: esta acción necesita internet. No se guardó ningún cambio.";
 
 /** Error de red/HTTP con su tipo: "network" | "timeout" | "http" | "offline". */
 export class HttpError extends Error {
-  constructor(message, { kind, status, cause } = {}) {
+  constructor(message, { kind, status, cause, details, code } = {}) {
     super(message, { cause });
     this.name = "HttpError";
     this.kind = kind;
     this.status = status;
+    /** En un 400 de validación: [{ field, message }] tal como los manda la API. */
+    this.details = details;
+    /** Identificador estable de la API (p. ej. "mfa_enrollment_required"). */
+    this.code = code;
   }
 }
 
@@ -186,7 +190,14 @@ async function request(
     }
 
     if (!response.ok) {
-      throw new HttpError(buildErrorMessage(data, response.status), { kind: "http", status: response.status });
+      // Un admin al que le restablecieron el MFA: el guard lo lleva a "Seguridad".
+      if (data?.code === "mfa_enrollment_required" && user) setAuth(getState().token, { ...user, mfaEnabled: false });
+      throw new HttpError(buildErrorMessage(data, response.status), {
+        kind: "http",
+        status: response.status,
+        details: Array.isArray(data?.details) ? data.details : undefined,
+        code: data?.code,
+      });
     }
 
     if (isGet && isOfflineCacheable(path) && user?.id) {

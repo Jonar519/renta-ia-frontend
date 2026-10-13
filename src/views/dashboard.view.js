@@ -1,15 +1,18 @@
 import { clientsApi } from "../api/clients.api.js";
 import { showErrorToast, showToast } from "../components/toast.js";
 import { renderSidebar, bindSidebarEvents } from "../components/sidebar.js";
+import { bindDensityToggles, densityToggleHtml } from "../components/densityToggle.js";
 import { escapeHtml } from "../utils/escapeHtml.js";
 import { getState } from "../state/store.js";
 import { createPagedList } from "../components/pagedList.js";
 import { can } from "../auth/permissions.js";
+import { emptyStateHtml, errorStateHtml, inRow, setPending, skeletonRowsHtml } from "../components/states.js";
 
 export async function renderDashboard(root) {
   // El admin ve los clientes de todos los contadores: se agrega la columna "Contador".
   const isAdmin = getState().user?.role === "admin";
   const columns = isAdmin ? 6 : 5;
+  const loadingHtml = skeletonRowsHtml(columns, { label: "Cargando clientes…" });
   root.innerHTML = `
     <div class="app-shell">
       ${renderSidebar("dashboard")}
@@ -45,7 +48,8 @@ export async function renderDashboard(root) {
         </section>
 
         <section class="panel">
-          <table class="table">
+          <div class="table-toolbar">${densityToggleHtml()}</div>
+          <table class="table table--stack">
             <caption class="visually-hidden">Tus clientes contribuyentes</caption>
             <thead>
               <tr>
@@ -58,7 +62,7 @@ export async function renderDashboard(root) {
               </tr>
             </thead>
             <tbody id="clients-tbody">
-              <tr><td colspan="${columns}" class="table__empty">Cargando...</td></tr>
+              ${loadingHtml}
             </tbody>
           </table>
           <div class="load-more">
@@ -71,6 +75,7 @@ export async function renderDashboard(root) {
   `;
 
   bindSidebarEvents(root);
+  bindDensityToggles(root);
 
   // Asistentes y usuarios de portal no crean clientes (la API también lo impide).
   if (can("client.create")) {
@@ -101,14 +106,17 @@ export async function renderDashboard(root) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
+      const done = setPending(form.querySelector("button[type=submit]"), "Guardando…");
 
       try {
         await clientsApi.create(data);
-        showToast("Cliente creado correctamente", "success");
+        showToast(`Cliente "${data.fullName}" creado.`, "success");
         closePanel();
         await clients.reload();
       } catch (err) {
         showErrorToast(err);
+      } finally {
+        done();
       }
     });
   } else {
@@ -118,11 +126,11 @@ export async function renderDashboard(root) {
 
   const clientRowHtml = (c) => `
     <tr>
-      <td class="table__primary">${escapeHtml(c.fullName)}</td>
-      <td>${escapeHtml(c.documentNumber)}</td>
-      <td>${escapeHtml(c.email || "—")}</td>
-      ${isAdmin ? `<td>${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
-      <td>${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
+      <td class="table__primary" data-label="Cliente">${escapeHtml(c.fullName)}</td>
+      <td class="num" data-label="Documento">${escapeHtml(c.documentNumber)}</td>
+      <td data-label="Correo">${escapeHtml(c.email || "—")}</td>
+      ${isAdmin ? `<td data-label="Contador">${escapeHtml(c.accountant?.name || "—")}</td>` : ""}
+      <td class="num" data-label="Creado">${new Date(c.createdAt).toLocaleDateString("es-CO")}</td>
       <td><a class="link" href="#/clients/${escapeHtml(c.id)}">Ver detalle<span class="visually-hidden"> de ${escapeHtml(c.fullName)}</span></a></td>
     </tr>`;
 
@@ -133,11 +141,34 @@ export async function renderDashboard(root) {
     status: root.querySelector("#clients-status"),
     fetchPage: (cursor) => clientsApi.list({ cursor }),
     renderItem: clientRowHtml,
-    emptyHtml: `<tr><td colspan="${columns}" class="table__empty">Todavía no tienes clientes. Crea el primero con "Nuevo cliente".</td></tr>`,
-    errorHtml: (message) =>
-      `<tr><td colspan="${columns}" class="table__empty table__empty--error">${message}</td></tr>`,
+    loadingHtml,
+    emptyHtml: inRow(columns, emptyClientsHtml()),
+    errorHtml: (message) => inRow(columns, errorStateHtml(message, { title: "No se pudieron cargar tus clientes." })),
     itemLabel: "clientes",
   });
 
   await clients.reload();
 }
+
+/** Vacío según lo que el rol puede hacer: solo quien puede crear clientes recibe esa indicación. */
+export function emptyClientsHtml() {
+  if (can("client.create")) {
+    return emptyStateHtml(
+      "Todavía no tienes clientes.",
+      'Crea el primero con "Nuevo cliente": luego podrás subir sus documentos y la IA extraerá las cifras.'
+    );
+  }
+  if (getState().user?.role === "client") {
+    return emptyStateHtml(
+      "Tu expediente todavía no está disponible.",
+      "Tu contador debe vincularlo a tu cuenta. Escríbele si crees que es un error."
+    );
+  }
+  return emptyStateHtml(
+    "Todavía no tienes clientes asignados.",
+    "Cuando el contador al que apoyas registre clientes, aparecerán aquí."
+  );
+}
+
+/** Punto de entrada de la ruta (tabla de rutas de main.js). */
+export default (root) => renderDashboard(root);

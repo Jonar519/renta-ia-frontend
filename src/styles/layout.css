@@ -12,14 +12,18 @@
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--color-navy-900);
-  color: #ffffff;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  color: var(--color-white);
   display: flex;
   flex-direction: column;
   padding: 24px 20px;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  /* Sin conexión, el banner (sticky arriba) ocupa --offline-banner-h: el
+     sidebar empieza debajo y mide el resto, así su parte de abajo (el menú de
+     usuario) no queda cortada. connectivityBanner.js mide el banner. */
+  top: var(--offline-banner-h, 0px);
+  height: calc(100vh - var(--offline-banner-h, 0px));
   overflow-y: auto;
 }
 
@@ -38,7 +42,7 @@
 }
 
 .sidebar__link {
-  color: #c7d2e0;
+  color: var(--color-slate-200);
   text-decoration: none;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
@@ -46,26 +50,12 @@
 }
 .sidebar__link:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  color: var(--color-white);
 }
 .sidebar__link.is-active {
   background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: 500;
-}
-
-.sidebar__logout {
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #c7d2e0;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--fs-sm);
-}
-.sidebar__logout:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
 }
 
 .main {
@@ -88,7 +78,7 @@
 }
 
 .page-subtitle {
-  color: var(--color-ink-500);
+  color: var(--text-muted);
   margin-top: 6px;
   font-size: var(--fs-sm);
   /* Reserva la línea aunque el texto llegue después (evita desplazar las pestañas). */
@@ -100,6 +90,8 @@
     flex-direction: column;
   }
   .sidebar {
+    /* El menú de usuario abre hacia abajo, fuera de la barra: sin recortarlo. */
+    overflow: visible;
     width: 100%;
     flex-direction: row;
     align-items: center;
@@ -113,9 +105,6 @@
   .sidebar__brand {
     margin-bottom: 0;
     margin-right: 20px;
-  }
-  .sidebar__logout {
-    margin-left: auto;
   }
   .main {
     padding: 24px 20px;
