@@ -163,5 +163,7 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     include: ["tests/**/*.test.js"],
     restoreMocks: true,
+    // vitest 4: restoreMocks ya no limpia los vi.fn(); mockReset mantiene lo de vitest 3.
+    mockReset: true,
   },
 }));

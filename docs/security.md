@@ -52,14 +52,11 @@ base-uri 'self'; form-action 'self'
 
 - `npm audit --omit=dev` (lo que llega al navegador): **0 vulnerabilidades**.
   El CI lo ejecuta en cada push (job `security`) junto con gitleaks.
-- Quedan 4 avisos en dependencias de **desarrollo** (medido el 2026-09-28). No se
-  corrigen con `npm audit fix --force` porque exigen versiones mayores:
-
-| Paquete                              | Severidad | Aviso                                                         | Por qué no aplica en producción / mitigación                                                                                                                                                                         |
-| ------------------------------------ | --------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vite` ≤ 6.4.2                       | alta      | GHSA-4w7w-66w2-5vf9, GHSA-v6wh-96g9-6wx3, GHSA-fx2h-pf6j-xcff | Afectan al **servidor de desarrollo**; el build de producción son archivos estáticos. El dev server escucha solo en `localhost` (no se configuró `server.host`). Arreglo: migrar a Vite 8 (cambio mayor, pendiente). |
-| `esbuild` ≤ 0.24.2 (vía vite)        | moderada  | GHSA-67mh-4wv8-2f99                                           | Igual: solo el dev server.                                                                                                                                                                                           |
-| `vitest` / `@vitest/mocker` ≤ 4.1.10 | moderada  | GHSA-82fw-gwwq-j7x9                                           | Solo corre en tests locales/CI con código propio. Arreglo: Vitest 5 (cambio mayor, pendiente).                                                                                                                       |
+- `npm audit` completo (también desarrollo): **0 vulnerabilidades** (medido el 2026-10-29).
+  - La auditoría de octubre subió `vite` 5 → 7.3.7 (con `esbuild` 0.28) y `vitest` 3 → 4.1.12,
+    que ya no usa `tinypool`.
+  - También subió `undici` a 7.30.1 y `source-map-js` a 1.2.2.
+  - Todas las versiones llevaban 14 días o más publicadas.
 
 ## Roles en la interfaz
 
