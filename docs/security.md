@@ -42,9 +42,12 @@ base-uri 'self'; form-action 'self'
   SHA-256), WebSocket y logout, **sin ninguna** violación
   (`securitypolicyviolation`).
 - En desarrollo no se aplica (el HMR de Vite inyecta código en línea).
-- **Pendiente para el despliegue:** `frame-ancestors` no funciona en `<meta>`.
-  El servidor que sirva el frontend debe enviar
-  `Content-Security-Policy: frame-ancestors 'none'` (anti clickjacking).
+- `frame-ancestors` no funciona en `<meta>`: va como **cabecera** en
+  [`vercel.json`](../vercel.json)
+  (`Content-Security-Policy: frame-ancestors 'none'` y `X-Frame-Options: DENY`, anti
+  clickjacking), con su prueba en `tests/vercel.test.js`. Esa cabecera solo lleva
+  `frame-ancestors`: si llevara `connect-src` u otras directivas, se sumaría a la del
+  `<meta>` (las dos se aplican) y podría bloquear la API.
 - Toda cadena que viene de la API se escapa con `src/utils/escapeHtml.js` antes
   de entrar a `innerHTML`.
 

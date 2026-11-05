@@ -142,8 +142,19 @@ npm run perf:measure
   (`npm audit --omit=dev` + gitleaks) y `e2e` (no bloqueante por ahora).
 - `node scripts/demo-files.mjs <carpeta>`: un PDF y una imagen de prueba (datos sintéticos) para la guía.
 
-## Pendiente
+## Despliegue (Vercel)
 
-Despliegue (S3 + CloudFront) fuera del Proyecto 1. El servidor que sirva el
-frontend deberá enviar `Content-Security-Policy: frame-ancestors 'none'`
-(no funciona como `<meta>`).
+[`vercel.json`](vercel.json): `npm ci` + `npm run build` y salida `dist`. El router es por
+hash, así que no hacen falta rewrites.
+
+- **Cabeceras en toda respuesta:**
+  - `Content-Security-Policy: frame-ancestors 'none'` (no funciona como `<meta>`);
+  - `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS y COOP.
+- **Caché** ([cache-policy.md](docs/cache-policy.md)): `/assets/*` inmutable; `/`,
+  `/index.html`, `/service-worker.js` y `/offline.html` con `no-cache`.
+- **En el proyecto de Vercel (no en el repo):** `VITE_API_URL=https://api-renta.<dominio>`.
+  Se lee en el build y también arma `connect-src` de la CSP, así que cambiarla exige
+  volver a construir.
+- **El frontend y la API tienen que ser del mismo sitio**, por la cookie `SameSite=Strict`
+  ([security.md](docs/security.md)): `renta.<dominio>` y `api-renta.<dominio>`.
+- **Pendiente:** el dominio. Sin él no se puede fijar `VITE_API_URL`.
