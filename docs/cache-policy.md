@@ -22,14 +22,14 @@ Qué se guarda, dónde, cuánto tiempo y por qué. El criterio que manda es de *
 
 ## Assets estáticos: inmutables
 
-Vite genera los nombres con hash de contenido (`index-BaoOQ32D.js`). En producción (S3 + CloudFront, fase de despliegue) la configuración debe ser:
+Vite genera los nombres con hash de contenido (`index-BaoOQ32D.js`). En producción (Vercel, [`vercel.json`](../vercel.json)) la configuración es:
 
 | Ruta                                                 | `Cache-Control`                                                            |
 | ---------------------------------------------------- | -------------------------------------------------------------------------- |
 | `/assets/*`                                          | `public, max-age=31536000, immutable`                                      |
 | `/index.html`, `/service-worker.js`, `/offline.html` | `no-cache` (se revalidan siempre: son los que apuntan a los assets nuevos) |
 
-Esto **todavía no está aplicado**: `vite preview` y el servidor de desarrollo no permiten configurarlo, y la infraestructura de despliegue queda para después.
+Está en `vercel.json`, también para `/`, que sirve `index.html`. Lo sujeta `tests/vercel.test.js`. `vite preview` y el servidor de desarrollo no lo aplican.
 
 ## Service Worker (`src/sw/service-worker.js`)
 
