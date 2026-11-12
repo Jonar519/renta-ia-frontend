@@ -94,7 +94,7 @@ Rangos declarados en el `package.json`:
 
 - **Para evaluarlo en producción:** solo un navegador actualizado (Chrome, Edge o Firefox). Ver
   [Qué necesita el profesor](https://github.com/Jonar519/renta-ia-backend#4-qué-necesita-el-profesor).
-- **Para correrlo en local:** Node.js 20 o superior y la API en `http://localhost:4000`
+- **Para correrlo en local:** Node.js 24 (la CI usa 24.13.1; con Node 20 fallan las pruebas del visor) y la API en `http://localhost:4000`
   ([opción local](https://github.com/Jonar519/renta-ia-backend#b-opción-local-opcional)). En `cmd.exe`:
 
 ```bat
