@@ -1,160 +1,207 @@
-# renta-ia-frontend
+# renta-ia-frontend: la aplicación web de Renta IA
 
-Interfaz web (SPA) del **Sistema de Gestión Documental Contable con IA**: login (las cuentas se
-crean por invitación de un administrador, con verificación en dos pasos), clientes, subida y
-seguimiento de documentos **en tiempo real**, el original junto a sus conceptos tributarios para
-revisarlos, alertas, resumen ejecutivo y chat sobre cada cliente. Además: mi perfil y foto,
-sesiones activas, mis datos (exportar y eliminar), administración de usuarios y rendimiento.
+**Producción:** <https://renta.jonarproyectos.com>
 
-**JavaScript sin framework** con Vite solo para el build
-([ADR 0001](../renta-ia-backend/docs/adr/0001-js-sin-framework-y-router-hash.md)).
+Este repositorio es la parte visible de **Renta IA**, la gestión documental contable con IA: clientes,
+documentos, revisión de conceptos con el original al lado, alertas, resumen, asistente de IA, cuenta y
+administración. La **guía completa para evaluar el proyecto** (acceso, roles y la prueba de cada
+función paso a paso) está en el README principal, en
+[renta-ia-backend](https://github.com/Jonar519/renta-ia-backend#readme). Aquí se explica lo propio del
+frontend.
 
-- **Guía de prueba completa (Fase 5):** [`../renta-ia-backend/docs/demo-fase5.md`](../renta-ia-backend/docs/demo-fase5.md)
-- Diseño: [`docs/design-tokens-audit.md`](docs/design-tokens-audit.md), [`docs/dark-mode.md`](docs/dark-mode.md) (tema del sistema), [`docs/ui-states.md`](docs/ui-states.md), [`docs/shell.md`](docs/shell.md)
-- Rendimiento medido antes/después: [`docs/performance-report.md`](docs/performance-report.md)
-- Política de caché y offline: [`docs/cache-policy.md`](docs/cache-policy.md)
-- Seguridad (sesión, CSP, dependencias): [`docs/security.md`](docs/security.md)
-- E2E: [`e2e/README.md`](e2e/README.md)
+## Contenido
 
-## Estructura
+1. [Qué es](#1-qué-es)
+2. [Cómo funciona](#2-cómo-funciona)
+3. [Tecnologías](#3-tecnologías)
+4. [Qué se necesita](#4-qué-se-necesita)
+5. [Acceso y roles](#5-acceso-y-roles)
+6. [Guía de pruebas](#6-guía-de-pruebas)
+7. [Pruebas automatizadas](#7-pruebas-automatizadas)
+8. [Limitaciones y decisiones de diseño](#8-limitaciones-y-decisiones-de-diseño)
+9. [Solución de problemas](#9-solución-de-problemas)
+10. [Estructura del repositorio](#10-estructura-del-repositorio)
+11. [Glosario](#11-glosario)
 
+## 1. Qué es
+
+Una aplicación de una sola página (SPA) en **JavaScript sin framework**, con Vite, que habla con la API
+de [renta-ia-backend](https://github.com/Jonar519/renta-ia-backend). Incluye:
+
+- **Clientes** del contador, con densidad de tabla configurable.
+- **Detalle del cliente**: documentos (subida con huella para evitar duplicados y estado en tiempo
+  real), conceptos tributarios y su revisión, visor del original con vista dividida, alertas, resumen
+  y asistente de IA.
+- **Cuenta**: Mi perfil (datos, foto, correo, contraseña, mis datos) y Seguridad (verificación en dos
+  pasos y sesiones activas).
+- **Administración**: usuarios e invitaciones, reasignación de clientes y rendimiento web.
+
+## 2. Cómo funciona
+
+Archivos estáticos servidos por Vercel. Los datos llegan de la API (`VITE_API_URL`, otro origen del
+mismo sitio) con `fetch` y credenciales, y el estado de los documentos por WebSocket. Un **router por
+hash** elige la pantalla y carga su código solo cuando hace falta:
+
+| Ruta                                    | Pantalla                                          | Quién                          |
+| --------------------------------------- | ------------------------------------------------- | ------------------------------ |
+| `#/login`                               | Inicio de sesión                                  | Cualquiera                     |
+| `#/recuperar` · `#/restablecer/<token>` | Pedir y usar el enlace de recuperación            | Cualquiera (con el enlace)     |
+| `#/invitacion/<token>`                  | Activar la cuenta invitada                        | Con el enlace del correo       |
+| `#/confirmar-correo/<token>`            | Confirmar un cambio de correo                     | Con el enlace del correo       |
+| `#/`                                    | Clientes (o el expediente, para el contribuyente) | Con sesión                     |
+| `#/clients/<id>`                        | Detalle del cliente                               | Con sesión y acceso al cliente |
+| `#/profile` · `#/seguridad`             | Mi perfil · Seguridad                             | Con sesión                     |
+| `#/admin/users` · `#/performance`       | Usuarios e invitaciones · Rendimiento             | Administrador                  |
+
+```mermaid
+flowchart LR
+  U["Navegador"] --> R["Router por hash<br/>(src/router.js, rutas en src/main.js)"]
+  R --> V["Vistas (src/views)<br/>cargadas al usarse"]
+  V --> API["src/api + src/auth<br/>fetch con credenciales y renovación"]
+  V --> RT["src/realtime<br/>WebSocket del estado de los documentos"]
+  V --> W["Web Workers<br/>huella de los archivos y conceptos"]
+  V --> PDF["Visor del original<br/>(pdf.js)"]
+  API --> B["API (renta-ia-backend)"]
+  RT --> B
+  SW["Service Worker<br/>(shell sin conexión)"] -.-> U
 ```
-renta-ia-frontend/
-├── index.html · vite.config.js      # build: preload de fuentes, Service Worker versionado, CSP
-├── public/offline.html
-├── src/
-│   ├── main.js · router.js          # router por hash, vistas con code-splitting
-│   ├── state/store.js               # sesión: access token SOLO en memoria
-│   ├── auth/                        # session.js (refresh single-flight, logout), permissions.js (UI por rol)
-│   ├── api/                         # http.js (timeouts, reintentos GET, renovación ante 401, offline) + un módulo por recurso
-│   ├── views/                       # login, invitación, recuperación, perfil, seguridad (MFA y sesiones), clientes,
-│   │                                # usuarios (admin), rendimiento y clientDetail/ (pestañas, documentos, visor, revisión)
-│   ├── components/                  # sidebar y menú de la cuenta, toast, tabs, estados, densidad, recorte de la foto…
-│   ├── realtime/                    # WebSocket con respaldo de polling
-│   ├── offline/                     # IndexedDB por usuario (solo lectura, 24 h) y estado de conexión
-│   ├── workers/                     # Web Workers: SHA-256 del archivo, agregación de conceptos
-│   ├── sw/                          # Service Worker y su registro
-│   ├── metrics/webVitals.js         # RUM anónimo
-│   └── styles/
-├── tests/                           # Vitest + jsdom
-├── e2e/                             # Playwright + axe
-├── perf/                            # mediciones de rendimiento (Playwright)
-└── scripts/check-bundle.mjs         # presupuesto de tamaño en cada build
-```
 
-## Puesta en marcha (Windows · cmd.exe)
+Puntos clave (detalle en [docs/referencia-tecnica.md](docs/referencia-tecnica.md)):
 
-Requisitos: Node.js 20+ y el backend corriendo (API + worker; ver el README raíz).
-El CI usa exactamente **Node 24.13.1** (la versión de desarrollo; `node-version` en
-`.github/workflows/ci.yml`). Los tests también pasan en Node 20.
+- **Sesión:** el token de acceso vive solo en memoria; al recargar se renueva con una cookie httpOnly.
+  En el almacenamiento local queda solo una pista (id, nombre y rol) que no sirve para llamar a la API.
+- **Permisos:** la interfaz oculta lo que tu rol no puede hacer; quien decide es la API.
+- **Duplicados:** un Web Worker calcula la huella SHA-256 del archivo antes de subirlo.
+- **Rendimiento:** presupuesto de tamaño del build y métricas reales (Web Vitals) enviadas a la API.
+
+## 3. Tecnologías
+
+Rangos declarados en el `package.json`:
+
+| Tecnología                                              | Versión                               | Para qué se usa                                                      | Por qué se eligió                                                       |
+| ------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **JavaScript** (módulos ES), HTML y CSS con tokens      | —                                     | Toda la app, sin framework                                           | El curso evalúa DOM, eventos y asincronía directamente.                 |
+| **Vite**                                                | ^7.3.7                                | Desarrollo y build                                                   | Build rápido con división del código por ruta.                          |
+| **pdf.js** (`pdfjs-dist`)                               | 6.4.299                               | Visor del documento original                                         | Muestra el PDF en la página, sin plugins.                               |
+| **web-vitals**                                          | ^6.2.2                                | Métricas reales de rendimiento                                       | Alimenta la pantalla **Rendimiento** del administrador.                 |
+| **@fontsource** (Inter, Source Serif 4, JetBrains Mono) | ^5.3.0                                | Fuentes autoalojadas                                                 | Sin pedir nada a terceros (lo exige la CSP).                            |
+| **Web Workers** · **Service Worker** · **WebSocket**    | APIs del navegador                    | Huella y conceptos en segundo plano; shell sin conexión; tiempo real | Sin bloquear la interfaz y sin recargar.                                |
+| **Vitest** + **jsdom** · **Playwright** + **axe**       | ^4.1.12 · ^29.1.1 · ^1.63.0 · ^4.13.0 | Pruebas unitarias; E2E y accesibilidad                               | E2E contra el sistema completo, vigilando la CSP en cada página.        |
+| **ESLint** · **Prettier**                               | ^10.11.0 · ^3.9.9                     | Reglas y formato                                                     | La CI los exige.                                                        |
+| **Vercel** · **GitHub Actions** · **gitleaks**          | —                                     | Hosting estático con cabeceras; CI y búsqueda de secretos            | Despliegue desde `main`; configuración en [`vercel.json`](vercel.json). |
+
+## 4. Qué se necesita
+
+- **Para evaluarlo en producción:** solo un navegador actualizado (Chrome, Edge o Firefox). Ver
+  [Qué necesita el profesor](https://github.com/Jonar519/renta-ia-backend#4-qué-necesita-el-profesor).
+- **Para correrlo en local:** Node.js 24 (la CI usa 24.13.1; con Node 20 fallan las pruebas del visor) y la API en `http://localhost:4000`
+  ([opción local](https://github.com/Jonar519/renta-ia-backend#b-opción-local-opcional)). En `cmd.exe`:
 
 ```bat
+cd renta-ia-frontend
 npm install
-copy .env.example .env
 npm run dev
 ```
 
-Abre **http://localhost:5173**. En desarrollo no hay Service Worker ni CSP
-(se aplican en el build).
+Esperado: `Local: http://localhost:5173/`. La app usa por defecto la API en `http://localhost:4000`; para
+otra, define `VITE_API_URL` (solo el origen), por ejemplo:
 
-| Variable       | Descripción                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| `VITE_API_URL` | URL de la API (por defecto `http://localhost:4000`). También define `connect-src` de la CSP del build |
-
-Build de producción y vista previa (con Service Worker y CSP):
-
-```bat
-npm run build
-npm run preview
+```ini
+VITE_API_URL=http://localhost:4000
 ```
 
-`npm run build` falla si se supera el presupuesto de tamaño (`scripts/check-bundle.mjs`, gzip). Los
-topes solo se cambian con una decisión escrita, que queda anotada junto a cada uno:
+Para probar el Service Worker y la CSP del build: `npm run build` y `npm run preview` (puerto 4173; la
+API debe tener `http://localhost:4173` en `CORS_ORIGIN`). Archivos de prueba sintéticos:
+`node scripts\demo-files.mjs <carpeta>`.
 
-| Presupuesto                                                                                      | Tope                      |
-| ------------------------------------------------------------------------------------------------ | ------------------------- |
-| JS de entrada                                                                                    | 4 KB                      |
-| Cada chunk                                                                                       | 6 KB                      |
-| CSS total                                                                                        | 7 KB                      |
-| Fuentes                                                                                          | 95 KB                     |
-| Primera carga: invitado (`#/login`) / con sesión (`#/`)                                          | 19 / 23 KB                |
-| Peor caso por rol (todas sus pantallas): invitado / contador / asistente / contribuyente / admin | 24 / 57 / 57 / 55 / 63 KB |
-| pdf.js (excepción D3, fuera de los topes por rol; solo al abrir un PDF)                          | 520 KB                    |
+## 5. Acceso y roles
 
-El chequeo también falla si pdf.js entra en el grafo estático de alguna pantalla, se empaqueta
-como módulo, lo carga otro archivo que no sea el visor, el Service Worker lo precachea o su versión
-no es exacta en `package.json`.
+Las cuentas se crean solo por invitación; el administrador usa verificación en dos pasos obligatoria.
+Roles (contador, asistente, contribuyente y administrador) y qué hacer si algo falla:
+[Acceso y roles](https://github.com/Jonar519/renta-ia-backend#5-acceso-y-roles).
 
-## Sesión
+## 6. Guía de pruebas
 
-El access token (15 min) vive **solo en memoria**; al recargar, la app lo recupera
-con la cookie `httpOnly` de refresh (que JavaScript no puede leer). En
-`localStorage` solo queda una pista sin secretos (`id`, `name`, `role`).
-Frontend y API deben ser del **mismo sitio** (p. ej. `app.x` y `api.x`): ver
-[ADR 0007](../renta-ia-backend/docs/adr/0007-esquema-de-sesion.md).
+La guía función por función está en el README principal:
+[Guía de pruebas](https://github.com/Jonar519/renta-ia-backend#6-guía-de-pruebas-función-por-función).
+Qué pantallas de este repositorio cubre cada bloque:
 
-La interfaz se adapta al rol (`src/auth/permissions.js`; la garantía es la API):
+| Bloque de la guía                     | Pantallas                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| A. Entrar                             | `#/login`, `#/seguridad` (activación de la verificación del admin)                               |
+| B. Clientes y documentos              | `#/`, `#/clients/<id>` (pestaña Documentos, visor y vista dividida)                              |
+| C. Alertas, resumen y asistente de IA | `#/clients/<id>` (pestañas Alertas, Resumen y Asistente IA)                                      |
+| D. Roles y aislamiento                | `#/` del contribuyente, guardas de `#/admin/users`                                               |
+| E. Administración                     | `#/admin/users`, `#/performance`, `#/invitacion/<token>`                                         |
+| F. Tu cuenta                          | `#/profile`, `#/seguridad`, `#/recuperar`, `#/restablecer/<token>`, `#/confirmar-correo/<token>` |
+| G. Robustez y seguridad               | Service Worker, almacenamiento del navegador, WebSocket                                          |
 
-- el asistente no ve "Nuevo cliente";
-- el contribuyente (`client`) ve su expediente en solo lectura, sin subida, resumen ni chat;
-- el **visor del original y la vista dividida** son solo para contador y asistente: el
-  contribuyente y el admin ven "Descargar".
+## 7. Pruebas automatizadas
 
-Una ruta sin permiso no descarga su código: rebota a Clientes con un aviso (`docs/shell.md`).
+| Comando            | Qué cubre                                                                                                                                                                                                                                    | Resultado esperado                               |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `npm test`         | Sesión, router y guardas, clientes, documentos, visor, revisión de conceptos, estados de carga y error, Service Worker, accesibilidad                                                                                                        | `Tests 259 passed (259)` en 30 archivos.         |
+| `npm run lint`     | ESLint y Prettier                                                                                                                                                                                                                            | Sin errores.                                     |
+| `npm run build`    | Build de producción con el presupuesto de tamaño (falla si se supera)                                                                                                                                                                        | Termina sin errores.                             |
+| `npm run test:e2e` | Playwright + axe contra el sistema completo con IA simulada: flujo crítico, login, MFA, invitaciones, recuperación, perfil, foto, sesiones, mis datos, densidad, guardas, revisión, visor, vista dividida, reasignación, estados, tema y CSP | Todos en verde ([e2e/README.md](e2e/README.md)). |
 
-## Técnicas de la plataforma que usa
+La CI corre todo esto en cada `push`, más `npm audit` y gitleaks.
 
-- **Router por hash** con cancelación de peticiones y limpieza de suscripciones al cambiar de vista.
-- **Web Workers**: validación y SHA-256 del archivo antes de subirlo; agregación de miles de conceptos.
-- **Render por lotes** cediendo el hilo principal (`src/utils/scheduling.js`) y listas paginadas por cursor.
-- **WebSocket** para el estado de los documentos, con polling de respaldo con backoff.
-- **Service Worker**: shell con stale-while-revalidate y aviso de versión nueva, assets inmutables, página offline; nunca intercepta `/api/`.
-- **IndexedDB**: copia de solo lectura por usuario con caducidad; sin red, las escrituras se bloquean.
-- **Web Vitals** (RUM) y vista "Rendimiento" para el admin.
-- **Tema del sistema** (`prefers-color-scheme`, sin interruptor) con tokens de diseño; el violeta
-  es solo para lo que produce la IA.
-- **pdf.js** del mismo origen y solo al abrir un PDF; las imágenes se muestran con `<img>`. La CSP
-  sigue estricta (`object-src` y `frame-src` en `'none'`).
+## 8. Limitaciones y decisiones de diseño
 
-## Accesibilidad
+- **Sin framework y sin selector de tema:** a propósito; el tema sigue al sistema operativo.
+- **El visor del original y la vista dividida son solo para el contador y el asistente;** el
+  contribuyente y el administrador ven **Descargar**.
+- **Algunas acciones de administración no tienen pantalla** (restablecer la verificación de una cuenta,
+  editar o borrar un cliente, la auditoría): se hacen por la API.
+- **`VITE_API_URL` se fija al construir:** también arma el `connect-src` de la CSP, así que cambiarla
+  exige volver a construir.
 
-Pestañas WAI-ARIA con teclado, regiones `aria-live`, foco al `<h1>` al cambiar de
-vista, enlace "Saltar al contenido", tablas con `<caption>`/`scope`, contraste AA
-y `prefers-reduced-motion`. Tablas en tarjetas en móvil (375 y 320 px, sin desplazamiento
-horizontal). El E2E corre **axe** (WCAG 2.1 A/AA) en **tema claro y oscuro** en cada pantalla que
-prueba, y falla ante violaciones _serious/critical_.
-La prueba con lector de pantalla real es manual (ver el README raíz).
+## 9. Solución de problemas
 
-## Tests y calidad
+| Síntoma                                     | Qué hacer                                                                                                      |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| "Hay una versión nueva de Renta IA."        | Pulsa **Recargar**.                                                                                            |
+| El estado de los documentos no se actualiza | La conexión de tiempo real se cayó o la red bloquea WebSockets; recarga la página.                             |
+| Local: errores de CORS                      | El origen de la app debe estar en `CORS_ORIGIN` del backend (`http://localhost:5173`; para el build, `:4173`). |
+| Local: `npm run build` falla por tamaño     | Se superó el presupuesto de `scripts/check-bundle.mjs`: revisa qué dependencia creció.                         |
+| El visor no muestra el PDF                  | "El PDF está dañado o no se puede leer. Descárgalo para revisarlo."                                            |
 
-```bat
-npm test
-npm run lint
-npm run build
-npm run test:e2e
-npm run perf:measure
+Más síntomas del proyecto completo:
+[Solución de problemas](https://github.com/Jonar519/renta-ia-backend#9-solución-de-problemas).
+
+## 10. Estructura del repositorio
+
+```
+renta-ia-frontend/
+├── index.html · public/        # documento base y archivos estáticos
+├── src/
+│   ├── main.js · router.js     # arranque, tabla de rutas y router por hash con guardas
+│   ├── auth/ · api/            # sesión (token en memoria, renovación) y cliente de la API
+│   ├── views/                  # login, clientes, detalle del cliente (clientDetail/), perfil, seguridad, admin
+│   ├── components/ · state/    # piezas reutilizables y estado compartido
+│   ├── realtime/               # WebSocket
+│   ├── workers/                # huella de los archivos y conceptos (Web Workers)
+│   ├── offline/ · sw/          # conectividad y Service Worker
+│   ├── metrics/                # Web Vitals
+│   ├── styles/ · utils/
+├── tests/ · e2e/               # Vitest y Playwright
+├── scripts/                    # presupuesto de tamaño, archivos de prueba…
+├── perf/ · lighthouserc.json   # mediciones de rendimiento
+├── docs/                       # referencia técnica, diseño, caché, seguridad, rendimiento
+├── vite.config.js · vercel.json
+└── package.json
 ```
 
-- `npm test`: Vitest + jsdom (sesión, http, offline, Service Worker, tiempo real, pestañas, Web Vitals…).
-- `npm run test:e2e`: necesita el stack con IA simulada; ver [`e2e/README.md`](e2e/README.md).
-- `npm run test:e2e`: además vigila la CSP en cada página (cero violaciones).
-- CI: lint, tests, build con presupuesto, Lighthouse (advertencia), `security`
-  (`npm audit --omit=dev` + gitleaks) y `e2e` (no bloqueante por ahora).
-- `node scripts/demo-files.mjs <carpeta>`: un PDF y una imagen de prueba (datos sintéticos) para la guía.
+## 11. Glosario
 
-## Despliegue (Vercel)
+| Término                   | Qué significa aquí                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| **SPA**                   | Aplicación de una sola página: carga una vez y cambia de pantalla sin recargar.     |
+| **Router por hash**       | Elige la pantalla según lo que va después de `#` en la dirección.                   |
+| **CSP**                   | Cabecera que limita de dónde carga scripts la página y a qué servidores se conecta. |
+| **Web Vitals**            | Métricas de la experiencia real (carga, interacción y estabilidad visual).          |
+| **Presupuesto de tamaño** | Tamaño máximo del código descargado; el build falla si se supera.                   |
 
-[`vercel.json`](vercel.json): `npm ci` + `npm run build` y salida `dist`. El router es por
-hash, así que no hacen falta rewrites.
-
-- **Cabeceras en toda respuesta:**
-  - `Content-Security-Policy: frame-ancestors 'none'` (no funciona como `<meta>`);
-  - `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS y COOP.
-- **Caché** ([cache-policy.md](docs/cache-policy.md)): `/assets/*` inmutable; `/`,
-  `/index.html`, `/service-worker.js` y `/offline.html` con `no-cache`.
-- **En el proyecto de Vercel (no en el repo):** `VITE_API_URL=https://api-renta.<dominio>`.
-  Se lee en el build y también arma `connect-src` de la CSP, así que cambiarla exige
-  volver a construir.
-- **El frontend y la API tienen que ser del mismo sitio**, por la cookie `SameSite=Strict`
-  ([security.md](docs/security.md)): `renta.<dominio>` y `api-renta.<dominio>`.
-- **Pendiente:** el dominio. Sin él no se puede fijar `VITE_API_URL`.
+El glosario completo está en el
+[README principal](https://github.com/Jonar519/renta-ia-backend#11-glosario).
